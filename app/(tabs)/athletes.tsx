@@ -10,9 +10,8 @@ import {
 } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { fonts } from '@/shared/theme';
+import { ThemedText, ThemedView } from '@/shared/components';
 import { supabase } from '@/lib/supabase';
 
 type AthleteRecord = Record<string, unknown> & {
@@ -405,7 +404,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 30,
-    fontFamily: Fonts.sans,
+    fontFamily: fonts.sans,
     fontWeight: '800',
     color: '#F8F9FA',
   },

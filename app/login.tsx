@@ -12,9 +12,8 @@ import {
   View,
 } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Fonts } from '@/constants/theme';
+import { ThemedText, ThemedView } from '@/shared/components';
+import { fonts } from '@/shared/theme';
 import { supabase } from '@/lib/supabase';
 
 // Alert.alert no funciona en web — este helper muestra un Alert nativo en móvil
@@ -347,7 +346,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '800',
     textAlign: 'center',
-    fontFamily: Fonts.sans,
+    fontFamily: fonts.sans,
     color: '#F8F9FA',
   },
   subtitle: {
