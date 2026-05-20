@@ -41,6 +41,7 @@ export const homeService = {
 
   // Next Training/Schedule
   async fetchNextTraining(userId: string): Promise<HomeTraining | null> {
+    // TODO: filtrar por categoría, rol o grupo del usuario cuando esté disponible.
     // This query depends on your actual schema
     // Assuming there's a relationship between user_profiles and schedules
     const { data, error } = await supabase

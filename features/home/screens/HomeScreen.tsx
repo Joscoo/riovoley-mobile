@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button, Platform, StyleSheet, View, ScrollView } from 'react-native';
+import { Button, StyleSheet, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { ParallaxScrollView, ThemedText, ThemedView } from '@/shared/components';
+import { ParallaxScrollView, ThemedText } from '@/shared/components';
 import { spacing } from '@/shared/theme';
 
 import {
@@ -15,22 +15,21 @@ import {
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useAnnouncements } from '../hooks/useAnnouncements';
 import { useNextTraining } from '../hooks/useNextTraining';
-import { useAttendance } from '../hooks/usePaymentStatus';
+import { useAttendance } from '../hooks/useAttendance';
+import { usePaymentStatus } from '../hooks/usePaymentStatus';
 import type { QuickAccessItem } from '../components/QuickAccessGrid';
-import { Image } from 'expo-image';
 
 export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | undefined>();
 
-  // Hooks for data
-  const { profile, loading: profileLoading } = useUserProfile(userId);
+  const { profile } = useUserProfile(userId);
   const { announcements, loading: announcementsLoading } = useAnnouncements(3);
   const { training, loading: trainingLoading } = useNextTraining(userId);
-  const { attendance, loading: attendanceLoading } = useAttendance(userId);
+  const { attendance } = useAttendance(userId);
+  const { paymentStatus, loading: paymentLoading } = usePaymentStatus(userId);
 
-  // Initialize session
   useEffect(() => {
     let mounted = true;
 
@@ -67,69 +66,83 @@ export default function HomeScreen() {
     setLoading(false);
   };
 
-  // Quick access items
   const quickAccessItems: QuickAccessItem[] = [
     {
       id: 'schedules',
       label: 'Horarios',
-      icon: '📅',
+      icon: '??',
       onPress: () => console.log('Navigate to schedules'),
     },
     {
       id: 'attendance',
       label: 'Asistencia',
-      icon: '✅',
+      icon: '?',
       onPress: () => console.log('Navigate to attendance'),
     },
     {
       id: 'payments',
       label: 'Pagos',
-      icon: '💳',
+      icon: '??',
       onPress: () => console.log('Navigate to payments'),
     },
     {
       id: 'progress',
       label: 'Progreso',
-      icon: '📈',
+      icon: '??',
       onPress: () => console.log('Navigate to progress'),
     },
     {
       id: 'announcements',
       label: 'Anuncios',
-      icon: '📢',
+      icon: '??',
       onPress: () => console.log('Navigate to announcements'),
     },
     {
       id: 'profile',
       label: 'Perfil',
-      icon: '👤',
+      icon: '??',
       onPress: () => console.log('Navigate to profile'),
     },
   ];
 
-  // Summary metrics
   const summaryMetrics = [
     {
       label: 'Asistencia',
       value: `${attendance?.percentage ?? 0}%`,
-      icon: '✅',
+      icon: '?',
     },
     {
-      label: 'Próximo',
+      label: 'Pr�ximo',
       value: training ? training.day_of_week.slice(0, 3) : 'N/A',
-      icon: '📅',
+      icon: '??',
+    },
+    {
+      label: 'Pago',
+      value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al d�a',
+      icon: '??',
     },
     {
       label: 'Anuncios',
       value: announcements.length,
-      icon: '📢',
+      icon: '??',
     },
   ];
 
-  // Alerts
   const alerts = [
-    ...(attendance && !attendance.attended ? [{ type: 'warning' as const, message: 'Asistencia pendiente esta semana' }] : []),
-    ...(announcements.length > 0 ? [{ type: 'info' as const, message: `${announcements.length} nuevo(s) anuncio(s)` }] : []),
+    ...(attendance && !attendance.attended
+      ? [{ type: 'warning' as const, message: 'Asistencia pendiente esta semana' }]
+      : []),
+    ...(paymentStatus?.pending
+      ? [
+          {
+            type: 'warning' as const,
+            message: `Pago pendiente${paymentStatus.amount ? ` de $${paymentStatus.amount}` : ''}`,
+          },
+        ]
+      : []),
+    ...(announcements.length > 0
+      ? [{ type: 'info' as const, message: `${announcements.length} nuevo(s) anuncio(s)` }]
+      : []),
   ];
 
   return (
@@ -137,50 +150,30 @@ export default function HomeScreen() {
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       headerImage={
         <View style={styles.headerImage}>
-          {/* RioVoley branding could go here */}
           <ThemedText type="title" style={styles.headerText}>
-            🏐 RioVoley
+            ?? RioVoley
           </ThemedText>
         </View>
       }>
-      {/* Profile Header */}
       <ProfileHeader
         name={profile?.full_name ?? null}
         role={profile?.role ?? null}
         email={sessionEmail}
       />
 
-      {/* Sign Out Button (temporary, for testing) */}
       <View style={styles.signOutContainer}>
-        <Button title="Cerrar sesión" onPress={handleSignOut} disabled={loading} />
+        <Button title="Cerrar sesi�n" onPress={handleSignOut} disabled={loading} />
       </View>
 
-      {/* Summary Metrics */}
       <SummaryMetrics metrics={summaryMetrics} />
-
-      {/* Next Training */}
       <NextTrainingCard training={training} loading={trainingLoading} />
-
-      {/* Quick Access Grid */}
       <QuickAccessGrid items={quickAccessItems} columns={3} />
-
-      {/* Announcements */}
       <AnnouncementsSection
         announcements={announcements}
         loading={announcementsLoading}
         onViewAll={() => console.log('View all announcements')}
       />
-
-      {/* Alerts */}
       <AlertsSection alerts={alerts} />
-
-      {/* Debug Info (remove in production) */}
-      <ThemedView style={styles.debugContainer}>
-        <ThemedText type="subtitle">Debug Info</ThemedText>
-        <ThemedText>Session: {sessionEmail || 'No session'}</ThemedText>
-        <ThemedText>Profile Loading: {profileLoading ? 'yes' : 'no'}</ThemedText>
-        <ThemedText>Announcements: {announcements.length}</ThemedText>
-      </ThemedView>
     </ParallaxScrollView>
   );
 }
@@ -197,12 +190,5 @@ const styles = StyleSheet.create({
   signOutContainer: {
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
-  },
-  debugContainer: {
-    marginHorizontal: spacing[4],
-    marginVertical: spacing[4],
-    padding: spacing[3],
-    borderRadius: 8,
-    opacity: 0.6,
   },
 });
