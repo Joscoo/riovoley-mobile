@@ -1,4 +1,5 @@
-import { StyleSheet, ViewProps } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { StyleSheet, type ViewProps } from 'react-native';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
 import { colors } from '../theme/colors';
@@ -13,18 +14,16 @@ export interface ErrorStateProps extends ViewProps {
 export function ErrorState({ message, retryLabel = 'Reintentar', onRetry, style, ...rest }: ErrorStateProps) {
   return (
     <ThemedView style={[styles.container, style]} {...rest}>
-      <ThemedText style={styles.errorIcon}>⚠️</ThemedText>
+      <MaterialIcons name="warning" size={48} color={colors.riovoley.warning} style={styles.errorIcon} />
       <ThemedText type="title" style={styles.title}>
         Oops, algo salió mal
       </ThemedText>
       <ThemedText style={styles.message}>{message}</ThemedText>
-      {onRetry && (
-        <ThemedText
-          style={[styles.retry, { color: colors.riovoley.primary }]}
-          onPress={onRetry}>
+      {onRetry ? (
+        <ThemedText style={[styles.retry, { color: colors.riovoley.gold }]} onPress={onRetry}>
           {retryLabel}
         </ThemedText>
-      )}
+      ) : null}
     </ThemedView>
   );
 }
@@ -37,7 +36,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
   },
   errorIcon: {
-    fontSize: 48,
     marginBottom: spacing[4],
   },
   title: {

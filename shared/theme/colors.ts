@@ -1,35 +1,34 @@
 /**
  * Color palette for RioVoley Mobile App
- * Includes light and dark mode support
  */
 
 export const colors = {
-  // Light mode
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: '#0a7ea4',
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: '#0a7ea4',
+    text: '#0F172A',
+    background: '#F8FAFC',
+    tint: '#1E3A8A',
+    icon: '#475569',
+    tabIconDefault: '#64748B',
+    tabIconSelected: '#1E3A8A',
+    card: '#FFFFFF',
+    border: '#E2E8F0',
   },
-  // Dark mode
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: '#fff',
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: '#fff',
+    text: '#F8FAFC',
+    background: '#0A0A0A',
+    tint: '#FFD700',
+    icon: '#A1A1AA',
+    tabIconDefault: '#A1A1AA',
+    tabIconSelected: '#FFD700',
+    card: '#14141E',
+    border: 'rgba(255, 255, 255, 0.12)',
   },
-  // RioVoley brand colors
   riovoley: {
-    accentGold: '#FFD700',
-    accentBlue: '#1E3A8A',
-    containerDark: '#0A0A0A',
-    cardDark: 'rgba(20, 20, 30, 0.96)',
-    primary: '#F4B400',
-    secondary: '#2563EB',
+    dark: '#0A0A0A',
+    deepBlue: '#1E3A8A',
+    gold: '#FFD700',
+    cardDark: '#14141E',
+    cardDarkAlt: '#1A1A26',
     text: '#FFFFFF',
     mutedText: '#A1A1AA',
     danger: '#EF4444',

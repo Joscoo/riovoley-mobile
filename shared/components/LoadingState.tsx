@@ -1,4 +1,4 @@
-import { StyleSheet, ActivityIndicator, ViewProps } from 'react-native';
+﻿import { StyleSheet, ActivityIndicator, ViewProps } from 'react-native';
 import { ThemedView } from './ThemedView';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
@@ -11,7 +11,7 @@ export interface LoadingStateProps extends ViewProps {
 export function LoadingState({ size = 'large', message, style, ...rest }: LoadingStateProps) {
   return (
     <ThemedView style={[styles.container, style]} {...rest}>
-      <ActivityIndicator size={size} color={colors.riovoley.primary} />
+      <ActivityIndicator size={size} color={colors.riovoley.gold} />
       {message && (
         <ThemedText style={styles.message}>{message}</ThemedText>
       )}
@@ -33,3 +33,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

@@ -1,12 +1,15 @@
 import { StyleSheet, View, ScrollView } from 'react-native';
-import { ThemedText, AppCard } from '@/shared/components';
-import { colors, spacing } from '@/shared/theme';
+import { type ComponentProps } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
+import { ThemedText, MetricCard } from '@/shared/components';
+import { spacing } from '@/shared/theme';
+
+type IconName = ComponentProps<typeof MaterialIcons>['name'];
 
 interface SummaryMetric {
   label: string;
   value: string | number;
-  icon: string;
-  color?: string;
+  iconName: IconName;
 }
 
 interface SummaryMetricsProps {
@@ -27,15 +30,7 @@ export function SummaryMetrics({ metrics }: SummaryMetricsProps) {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}>
         {metrics.map((metric, index) => (
-          <AppCard key={`metric-${index}`} style={styles.card} variant="elevated">
-            <View style={styles.content}>
-              <ThemedText style={[styles.icon]}>{metric.icon}</ThemedText>
-              <ThemedText style={styles.value}>{metric.value}</ThemedText>
-              <ThemedText style={styles.label} numberOfLines={1}>
-                {metric.label}
-              </ThemedText>
-            </View>
-          </AppCard>
+          <MetricCard key={`metric-${index}`} label={metric.label} value={metric.value} iconName={metric.iconName} />
         ))}
       </ScrollView>
     </View>
@@ -56,31 +51,5 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing[4],
     gap: spacing[2],
-  },
-  card: {
-    width: 100,
-    height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: spacing[1],
-  },
-  content: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  icon: {
-    fontSize: 32,
-    marginBottom: spacing[1],
-  },
-  value: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: spacing[1],
-  },
-  label: {
-    fontSize: 11,
-    textAlign: 'center',
-    fontWeight: '500',
   },
 });

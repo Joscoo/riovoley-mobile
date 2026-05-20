@@ -1,6 +1,6 @@
-import { StyleSheet, ViewProps } from 'react-native';
+import { StyleSheet, type ViewProps } from 'react-native';
 import { ThemedView } from './ThemedView';
-import { spacing, borderRadius } from '../theme/spacing';
+import { borderRadius, colors, spacing } from '@/shared/theme';
 
 export interface AppCardProps extends ViewProps {
   children: React.ReactNode;
@@ -8,49 +8,27 @@ export interface AppCardProps extends ViewProps {
 }
 
 export function AppCard({ children, variant = 'default', style, ...rest }: AppCardProps) {
-  const getStyle = () => {
-    switch (variant) {
-      case 'elevated':
-        return styles.elevated;
-      case 'outlined':
-        return styles.outlined;
-      case 'default':
-      default:
-        return styles.default;
-    }
-  };
-
-  return (
-    <ThemedView style={[getStyle(), style]} {...rest}>
-      {children}
-    </ThemedView>
-  );
+  return <ThemedView style={[styles.base, styles[variant], style]} {...rest}>{children}</ThemedView>;
 }
 
 const styles = StyleSheet.create({
-  default: {
+  base: {
     padding: spacing[4],
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     marginVertical: spacing[2],
+    backgroundColor: colors.riovoley.cardDark,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.12)',
   },
+  default: {},
   elevated: {
-    padding: spacing[4],
-    borderRadius: borderRadius.md,
-    marginVertical: spacing[2],
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   outlined: {
-    padding: spacing[4],
-    borderRadius: borderRadius.md,
-    marginVertical: spacing[2],
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255, 215, 0, 0.32)',
   },
 });

@@ -1,59 +1,43 @@
 import { StyleSheet, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { ThemedText, AppCard } from '@/shared/components';
-import { colors, spacing } from '@/shared/theme';
-import { HomeTraining } from '../types/home.types';
+import { colors, spacing, fontWeights } from '@/shared/theme';
+import type { HomeTraining } from '../types/home.types';
 
 interface NextTrainingCardProps {
   training: HomeTraining | null;
   loading?: boolean;
 }
 
+function DetailRow({ icon, label, value }: { icon: keyof typeof MaterialIcons.glyphMap; label: string; value: string }) {
+  return (
+    <View style={styles.row}>
+      <View style={styles.rowLabel}>
+        <MaterialIcons name={icon} size={18} color={colors.riovoley.gold} />
+        <ThemedText style={styles.label}>{label}</ThemedText>
+      </View>
+      <ThemedText style={styles.value}>{value}</ThemedText>
+    </View>
+  );
+}
+
 export function NextTrainingCard({ training, loading }: NextTrainingCardProps) {
-  if (loading) {
-    return (
-      <AppCard style={styles.container}>
-        <ThemedText type="subtitle">Próximo Entrenamiento</ThemedText>
-        <ThemedText style={styles.loadingText}>Cargando...</ThemedText>
-      </AppCard>
-    );
-  }
-
-  if (!training) {
-    return (
-      <AppCard style={styles.container}>
-        <ThemedText type="subtitle">Próximo Entrenamiento</ThemedText>
-        <ThemedText style={styles.noData}>No hay entrenamientos programados</ThemedText>
-      </AppCard>
-    );
-  }
-
   return (
     <AppCard style={[styles.container, styles.cardElevated]}>
       <ThemedText type="subtitle">Próximo Entrenamiento</ThemedText>
 
-      <View style={styles.content}>
-        <View style={styles.row}>
-          <ThemedText style={styles.label}>📅 Día:</ThemedText>
-          <ThemedText style={styles.value}>{training.day_of_week}</ThemedText>
-        </View>
+      {loading ? <ThemedText style={styles.loadingText}>Cargando...</ThemedText> : null}
 
-        <View style={styles.row}>
-          <ThemedText style={styles.label}>⏰ Hora:</ThemedText>
-          <ThemedText style={styles.value}>
-            {training.start_time} - {training.end_time}
-          </ThemedText>
-        </View>
+      {!loading && !training ? <ThemedText style={styles.noData}>No hay entrenamientos programados</ThemedText> : null}
 
-        <View style={styles.row}>
-          <ThemedText style={styles.label}>🏐 Categoría:</ThemedText>
-          <ThemedText style={styles.value}>{training.category}</ThemedText>
+      {!loading && training ? (
+        <View style={styles.content}>
+          <DetailRow icon="calendar-month" label="Día" value={training.day_of_week} />
+          <DetailRow icon="schedule" label="Hora" value={`${training.start_time} - ${training.end_time}`} />
+          <DetailRow icon="sports-volleyball" label="Categoría" value={training.category} />
+          <DetailRow icon="place" label="Lugar" value={training.location} />
         </View>
-
-        <View style={styles.row}>
-          <ThemedText style={styles.label}>📍 Lugar:</ThemedText>
-          <ThemedText style={styles.value}>{training.location}</ThemedText>
-        </View>
-      </View>
+      ) : null}
     </AppCard>
   );
 }
@@ -64,7 +48,7 @@ const styles = StyleSheet.create({
     marginVertical: spacing[3],
   },
   cardElevated: {
-    backgroundColor: colors.riovoley.cardDark,
+    backgroundColor: colors.riovoley.cardDarkAlt,
   },
   content: {
     marginTop: spacing[3],
@@ -76,8 +60,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing[1],
   },
+  rowLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+  },
   label: {
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
     fontSize: 14,
   },
   value: {
@@ -88,10 +77,10 @@ const styles = StyleSheet.create({
   noData: {
     marginTop: spacing[2],
     fontStyle: 'italic',
-    opacity: 0.7,
+    opacity: 0.8,
   },
   loadingText: {
     marginTop: spacing[2],
-    opacity: 0.7,
+    opacity: 0.8,
   },
 });

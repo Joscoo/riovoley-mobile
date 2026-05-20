@@ -1,11 +1,14 @@
-import { StyleSheet, View, ScrollView } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, View, type ComponentProps } from 'react-native';
 import { ThemedText, AppCard } from '@/shared/components';
-import { colors, spacing } from '@/shared/theme';
+import { spacing, colors, fontWeights } from '@/shared/theme';
+
+export type QuickAccessIcon = ComponentProps<typeof MaterialIcons>['name'];
 
 export interface QuickAccessItem {
   id: string;
   label: string;
-  icon: string;
+  iconName: QuickAccessIcon;
   onPress: () => void;
 }
 
@@ -17,7 +20,6 @@ interface QuickAccessGridProps {
 export function QuickAccessGrid({ items, columns = 3 }: QuickAccessGridProps) {
   if (items.length === 0) return null;
 
-  // Split items into rows
   const rows: QuickAccessItem[][] = [];
   for (let i = 0; i < items.length; i += columns) {
     rows.push(items.slice(i, i + columns));
@@ -31,10 +33,12 @@ export function QuickAccessGrid({ items, columns = 3 }: QuickAccessGridProps) {
       {rows.map((row, rowIndex) => (
         <View key={`row-${rowIndex}`} style={styles.row}>
           {row.map((item) => (
-            <AppCard key={item.id} style={styles.card} onPress={item.onPress}>
-              <ThemedText style={styles.icon}>{item.icon}</ThemedText>
-              <ThemedText style={styles.label}>{item.label}</ThemedText>
-            </AppCard>
+            <Pressable key={item.id} style={styles.pressable} onPress={item.onPress}>
+              <AppCard style={styles.card}>
+                <MaterialIcons name={item.iconName} size={28} color={colors.riovoley.gold} />
+                <ThemedText style={styles.label}>{item.label}</ThemedText>
+              </AppCard>
+            </Pressable>
           ))}
         </View>
       ))}
@@ -55,20 +59,20 @@ const styles = StyleSheet.create({
     gap: spacing[2],
     marginBottom: spacing[2],
   },
-  card: {
+  pressable: {
     flex: 1,
+  },
+  card: {
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing[4],
-    minHeight: 100,
-  },
-  icon: {
-    fontSize: 32,
-    marginBottom: spacing[1],
+    minHeight: 102,
   },
   label: {
+    marginTop: spacing[1],
     fontSize: 12,
     textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: fontWeights.semibold,
+    color: colors.riovoley.text,
   },
 });

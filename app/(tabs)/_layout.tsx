@@ -1,8 +1,8 @@
 import { Redirect, Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { colors } from '@/shared/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
@@ -17,10 +17,7 @@ export default function TabLayout() {
 
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       setHasSession(!!data.session);
       setChecking(false);
     };
@@ -38,34 +35,45 @@ export default function TabLayout() {
     };
   }, []);
 
-  if (checking) {
-    return null;
-  }
-
-  if (!hasSession) {
-    return <Redirect href="/login" />;
-  }
+  if (checking) return null;
+  if (!hasSession) return <Redirect href="/login" />;
 
   return (
     <Tabs
-      initialRouteName="athletes"
+      initialRouteName="index"
       screenOptions={{
-        tabBarActiveTintColor: colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: colors[colorScheme ?? 'dark'].tabIconSelected,
+        tabBarInactiveTintColor: colors[colorScheme ?? 'dark'].tabIconDefault,
+        tabBarStyle: {
+          backgroundColor: colors.riovoley.dark,
+          borderTopColor: 'rgba(255, 215, 0, 0.2)',
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarLabelStyle: { fontWeight: '700' },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Inicio',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color, size }) => <MaterialIcons size={size} name="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="athletes"
         options={{
           title: 'Atletas',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.3.fill" color={color} />,
+          tabBarIcon: ({ color, size }) => <MaterialIcons size={size} name="groups" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color, size }) => <MaterialIcons size={size} name="person" color={color} />,
         }}
       />
     </Tabs>
