@@ -77,10 +77,10 @@ const styles = StyleSheet.create({
   noData: {
     marginTop: spacing[2],
     fontStyle: 'italic',
-    opacity: 0.8,
+    opacity: 0.85,
   },
   loadingText: {
     marginTop: spacing[2],
-    opacity: 0.8,
+    opacity: 0.85,
   },
 });

@@ -1,9 +1,9 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { supabase } from '@/lib/supabase';
-import { ParallaxScrollView, ThemedText } from '@/shared/components';
-import { spacing, colors, fontWeights } from '@/shared/theme';
+import { ParallaxScrollView } from '@/shared/components';
+import { spacing, colors } from '@/shared/theme';
 
 import {
   ProfileHeader,
@@ -93,19 +93,22 @@ export default function HomeScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#153E7D', dark: '#0E2B5A' }}
+      headerBackgroundColor={{ light: '#294B96', dark: '#1B3470' }}
+      stickyHeader={
+        <View style={styles.stickyBar}>
+          <Image source={require('@/assets/images/logoRio.png')} style={styles.stickyLogo} contentFit="contain" />
+        </View>
+      }
       headerImage={
         <View style={styles.headerImage}>
           <View style={styles.metalLayerPrimary} />
           <View style={styles.metalLayerSecondary} />
           <View style={styles.nacarGlowTop} />
           <View style={styles.nacarGlowBottom} />
+          <View style={styles.goldLine} />
 
           <View style={styles.brandPlate}>
-            <Image source={require('@/assets/images/logoRiovoley.jpg')} style={styles.logo} contentFit="cover" />
-            <ThemedText type="title" style={styles.headerText}>
-              RioVoley
-            </ThemedText>
+            <Image source={require('@/assets/images/logoRio.png')} style={styles.logo} contentFit="contain" />
           </View>
         </View>
       }>
@@ -130,69 +133,77 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    backgroundColor: '#274A96',
   },
   metalLayerPrimary: {
     position: 'absolute',
-    top: -80,
-    left: -40,
-    width: 320,
-    height: 220,
-    borderRadius: 140,
-    backgroundColor: 'rgba(255,255,255,0.09)',
-    transform: [{ rotate: '-8deg' }],
+    top: -110,
+    left: -100,
+    width: 440,
+    height: 260,
+    borderRadius: 180,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    transform: [{ rotate: '-9deg' }],
   },
   metalLayerSecondary: {
     position: 'absolute',
-    right: -70,
-    bottom: -70,
-    width: 300,
-    height: 200,
-    borderRadius: 130,
-    backgroundColor: 'rgba(7, 22, 49, 0.36)',
+    right: -95,
+    bottom: -90,
+    width: 360,
+    height: 250,
+    borderRadius: 170,
+    backgroundColor: 'rgba(20, 40, 90, 0.40)',
     transform: [{ rotate: '14deg' }],
   },
   nacarGlowTop: {
     position: 'absolute',
-    top: 22,
-    right: 26,
+    top: 10,
+    right: 20,
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255, 215, 0, 0.18)',
+    backgroundColor: 'rgba(255, 238, 194, 0.34)',
   },
   nacarGlowBottom: {
     position: 'absolute',
-    bottom: 16,
-    left: 38,
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(255, 239, 186, 0.20)',
+    bottom: 12,
+    left: 32,
+    width: 98,
+    height: 98,
+    borderRadius: 49,
+    backgroundColor: 'rgba(245, 179, 58, 0.26)',
+  },
+  goldLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 2,
+    backgroundColor: 'rgba(245, 179, 58, 0.60)',
   },
   brandPlate: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.34)',
-    backgroundColor: 'rgba(7, 20, 44, 0.40)',
+    borderColor: 'rgba(255, 243, 201, 0.52)',
+    backgroundColor: 'rgba(18, 53, 120, 0.40)',
   },
   logo: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 236, 170, 0.85)',
+    width: 176,
+    height: 54,
   },
-  headerText: {
-    color: '#FFFFFF',
-    fontSize: 36,
-    fontWeight: fontWeights.black,
-    textShadowColor: 'rgba(0, 0, 0, 0.35)',
-    textShadowRadius: 8,
-    textShadowOffset: { width: 0, height: 2 },
+  stickyBar: {
+    height: 58,
+    paddingTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(23, 51, 112, 0.97)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(245, 179, 58, 0.55)',
+  },
+  stickyLogo: {
+    width: 108,
+    height: 30,
   },
 });

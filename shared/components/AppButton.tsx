@@ -10,10 +10,10 @@ export interface AppButtonProps extends PressableProps {
 
 export function AppButton({ label, variant = 'primary', loading = false, style, ...rest }: AppButtonProps) {
   const palette = {
-    primary: { bg: colors.riovoley.gold, text: colors.riovoley.dark, border: colors.riovoley.gold },
+    primary: { bg: colors.riovoley.gold, text: colors.riovoley.navy, border: colors.riovoley.gold },
     secondary: { bg: colors.riovoley.deepBlue, text: '#fff', border: colors.riovoley.deepBlue },
     danger: { bg: colors.riovoley.danger, text: '#fff', border: colors.riovoley.danger },
-    outline: { bg: 'transparent', text: colors.riovoley.gold, border: colors.riovoley.gold },
+    outline: { bg: 'transparent', text: colors.riovoley.pearl, border: colors.riovoley.gold },
   }[variant];
 
   return (

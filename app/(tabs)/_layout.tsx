@@ -45,8 +45,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors[colorScheme ?? 'dark'].tabIconSelected,
         tabBarInactiveTintColor: colors[colorScheme ?? 'dark'].tabIconDefault,
         tabBarStyle: {
-          backgroundColor: colors.riovoley.dark,
-          borderTopColor: 'rgba(255, 215, 0, 0.2)',
+          backgroundColor: colors.riovoley.navy,
+          borderTopColor: 'rgba(245, 179, 58, 0.35)',
           height: 64,
           paddingBottom: 8,
           paddingTop: 6,
@@ -76,6 +76,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <MaterialIcons size={size} name="person" color={color} />,
         }}
       />
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }

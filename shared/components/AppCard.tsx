@@ -18,17 +18,17 @@ const styles = StyleSheet.create({
     marginVertical: spacing[2],
     backgroundColor: colors.riovoley.cardDark,
     borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.12)',
+    borderColor: 'rgba(245, 179, 58, 0.24)',
   },
   default: {},
   elevated: {
-    shadowColor: '#000',
+    shadowColor: '#0B1A4A',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.22,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 7,
   },
   outlined: {
-    borderColor: 'rgba(255, 215, 0, 0.32)',
+    borderColor: 'rgba(255, 245, 214, 0.55)',
   },
 });

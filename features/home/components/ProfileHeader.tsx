@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     marginBottom: spacing[2],
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 215, 0, 0.18)',
+    borderBottomColor: 'rgba(245, 179, 58, 0.25)',
   },
   header: {
     marginBottom: spacing[2],
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 13,
-    opacity: 0.85,
+    opacity: 0.9,
     marginTop: spacing[1],
   },
 });
