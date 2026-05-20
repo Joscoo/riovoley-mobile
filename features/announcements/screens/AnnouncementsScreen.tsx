@@ -1,11 +1,13 @@
 import { StyleSheet, View } from 'react-native';
 import { SectionHeader } from '@/shared/components';
 import { colors, spacing } from '@/shared/theme';
+import { useSessionRole } from '@/shared/auth/useSessionRole';
 import { useAnnouncements } from '../hooks/useAnnouncements';
 import { AnnouncementsList } from '../components/AnnouncementsList';
 
 export default function AnnouncementsScreen() {
-  const { announcements, loading, error } = useAnnouncements();
+  const { role } = useSessionRole();
+  const { announcements, loading, error } = useAnnouncements(role);
 
   return (
     <View style={styles.container}>

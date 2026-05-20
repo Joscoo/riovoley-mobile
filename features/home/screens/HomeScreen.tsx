@@ -30,7 +30,7 @@ export default function HomeScreen() {
   const [userId, setUserId] = useState<string | undefined>();
 
   const { profile } = useUserProfile(userId);
-  const { announcements, loading: announcementsLoading } = useAnnouncements(3);
+  const { announcements, loading: announcementsLoading } = useAnnouncements(role, 3);
   const { training, loading: trainingLoading } = useNextTraining(userId);
   const { attendance } = useAttendance(userId);
   const { paymentStatus, loading: paymentLoading } = usePaymentStatus(userId);
@@ -69,10 +69,10 @@ export default function HomeScreen() {
 
   const summaryMetrics = [
     { label: 'Asistencia', value: `${attendance?.percentage ?? 0}%`, iconName: 'checkmark-circle-outline' as const },
-    { label: 'PrÃ³ximo', value: training ? training.day_of_week.slice(0, 3) : 'N/A', iconName: 'calendar-outline' as const },
+    { label: 'Próximo', value: training ? training.day_of_week.slice(0, 3) : 'N/A', iconName: 'calendar-outline' as const },
     {
       label: 'Pago',
-      value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al dÃ­a',
+      value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al día',
       iconName: 'card-outline' as const,
     },
     { label: 'Anuncios', value: announcements.length, iconName: 'megaphone-outline' as const },
