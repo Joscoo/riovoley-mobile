@@ -1,9 +1,9 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View, type ComponentProps } from 'react-native';
 import { ThemedText, AppCard } from '@/shared/components';
 import { spacing, colors, fontWeights } from '@/shared/theme';
 
-export type QuickAccessIcon = ComponentProps<typeof MaterialIcons>['name'];
+export type QuickAccessIcon = ComponentProps<typeof Ionicons>['name'];
 
 export interface QuickAccessItem {
   id: string;
@@ -35,7 +35,7 @@ export function QuickAccessGrid({ items, columns = 3 }: QuickAccessGridProps) {
           {row.map((item) => (
             <Pressable key={item.id} style={styles.pressable} onPress={item.onPress}>
               <AppCard style={styles.card}>
-                <MaterialIcons name={item.iconName} size={28} color={colors.riovoley.gold} />
+                <Ionicons name={item.iconName} size={26} color={colors.riovoley.gold} />
                 <ThemedText style={styles.label}>{item.label}</ThemedText>
               </AppCard>
             </Pressable>

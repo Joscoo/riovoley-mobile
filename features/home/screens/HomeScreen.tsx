@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ParallaxScrollView } from '@/shared/components';
-import { spacing, colors } from '@/shared/theme';
+import { spacing } from '@/shared/theme';
 
 import {
   ProfileHeader,
@@ -14,13 +15,14 @@ import {
   SummaryMetrics,
 } from '../components';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { useAnnouncements } from '../hooks/useAnnouncements';
 import { useNextTraining } from '../hooks/useNextTraining';
 import { useAttendance } from '../hooks/useAttendance';
 import { usePaymentStatus } from '../hooks/usePaymentStatus';
+import { useAnnouncements } from '@/features/announcements/hooks/useAnnouncements';
 import type { QuickAccessItem } from '../components/QuickAccessGrid';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | undefined>();
 
@@ -55,23 +57,20 @@ export default function HomeScreen() {
   }, []);
 
   const quickAccessItems: QuickAccessItem[] = [
-    { id: 'schedules', label: 'Horarios', iconName: 'calendar-month', onPress: () => console.log('Navigate to schedules') },
-    { id: 'attendance', label: 'Asistencia', iconName: 'check-circle', onPress: () => console.log('Navigate to attendance') },
-    { id: 'payments', label: 'Pagos', iconName: 'credit-card', onPress: () => console.log('Navigate to payments') },
-    { id: 'progress', label: 'Progreso', iconName: 'trending-up', onPress: () => console.log('Navigate to progress') },
-    { id: 'announcements', label: 'Anuncios', iconName: 'campaign', onPress: () => console.log('Navigate to announcements') },
-    { id: 'profile', label: 'Perfil', iconName: 'person', onPress: () => console.log('Navigate to profile') },
+    { id: 'profile', label: 'Perfil', iconName: 'person-circle-outline', onPress: () => router.push('/(tabs)/profile') },
+    { id: 'announcements', label: 'Anuncios', iconName: 'megaphone-outline', onPress: () => router.push('/(tabs)/announcements') },
+    { id: 'athletes', label: 'Atletas', iconName: 'people-outline', onPress: () => router.push('/(tabs)/athletes') },
   ];
 
   const summaryMetrics = [
-    { label: 'Asistencia', value: `${attendance?.percentage ?? 0}%`, iconName: 'check-circle' as const },
-    { label: 'Próximo', value: training ? training.day_of_week.slice(0, 3) : 'N/A', iconName: 'calendar-month' as const },
+    { label: 'Asistencia', value: `${attendance?.percentage ?? 0}%`, iconName: 'checkmark-circle-outline' as const },
+    { label: 'Próximo', value: training ? training.day_of_week.slice(0, 3) : 'N/A', iconName: 'calendar-outline' as const },
     {
       label: 'Pago',
       value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al día',
-      iconName: 'credit-card' as const,
+      iconName: 'card-outline' as const,
     },
-    { label: 'Anuncios', value: announcements.length, iconName: 'campaign' as const },
+    { label: 'Anuncios', value: announcements.length, iconName: 'megaphone-outline' as const },
   ];
 
   const alerts = [
@@ -118,9 +117,14 @@ export default function HomeScreen() {
       <NextTrainingCard training={training} loading={trainingLoading} />
       <QuickAccessGrid items={quickAccessItems} columns={3} />
       <AnnouncementsSection
-        announcements={announcements}
+        announcements={announcements.map((a) => ({
+          id: a.id,
+          title: a.title,
+          content: a.content ?? undefined,
+          created_at: a.createdAt ?? undefined,
+        }))}
         loading={announcementsLoading}
-        onViewAll={() => console.log('View all announcements')}
+        onViewAll={() => router.push('/(tabs)/announcements')}
       />
       <AlertsSection alerts={alerts} />
     </ParallaxScrollView>

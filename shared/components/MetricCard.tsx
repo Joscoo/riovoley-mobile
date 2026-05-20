@@ -1,10 +1,10 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import { StyleSheet, View, type ComponentProps } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, type ComponentProps } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { PrimaryCard } from './PrimaryCard';
 import { colors, spacing, fontWeights } from '@/shared/theme';
 
-type IconName = ComponentProps<typeof MaterialIcons>['name'];
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
 interface MetricCardProps {
   label: string;
@@ -15,7 +15,7 @@ interface MetricCardProps {
 export function MetricCard({ label, value, iconName }: MetricCardProps) {
   return (
     <PrimaryCard style={styles.card}>
-      <MaterialIcons name={iconName} size={24} color={colors.riovoley.gold} />
+      <Ionicons name={iconName} size={24} color={colors.riovoley.gold} />
       <ThemedText style={styles.value}>{value}</ThemedText>
       <ThemedText style={styles.label}>{label}</ThemedText>
     </PrimaryCard>

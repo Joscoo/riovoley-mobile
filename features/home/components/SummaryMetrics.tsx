@@ -1,10 +1,10 @@
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { type ComponentProps } from 'react';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { ThemedText, MetricCard } from '@/shared/components';
 import { spacing } from '@/shared/theme';
 
-type IconName = ComponentProps<typeof MaterialIcons>['name'];
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
 interface SummaryMetric {
   label: string;
