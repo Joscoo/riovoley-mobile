@@ -11,6 +11,12 @@ export { LoadingState } from './LoadingState';
 export { EmptyState } from './EmptyState';
 export { ErrorState } from './ErrorState';
 export { ScreenContainer } from './ScreenContainer';
+export { PrimaryCard } from './PrimaryCard';
+export { MetricCard } from './MetricCard';
+export { SectionHeader } from './SectionHeader';
+export { PrimaryActionButton } from './PrimaryActionButton';
+export { StatusBadge } from './StatusBadge';
+export { RoleGuard } from './RoleGuard';
 
 // Re-export types
 export type { ThemedTextProps } from './ThemedText';

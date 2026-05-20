@@ -1,30 +1,22 @@
-/**
- * Typography/Fonts configuration for RioVoley Mobile App
- */
-
 import { Platform } from 'react-native';
 
 export const fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'normal',
+    sans: 'sans-serif',
     serif: 'serif',
-    rounded: 'normal',
+    rounded: 'sans-serif',
     mono: 'monospace',
   },
   web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    sans: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
+    rounded: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     mono: "'Monaco', 'Courier New', monospace",
   },
 });
@@ -47,4 +39,5 @@ export const fontWeights = {
   semibold: '600' as const,
   bold: '700' as const,
   extrabold: '800' as const,
+  black: '900' as const,
 };

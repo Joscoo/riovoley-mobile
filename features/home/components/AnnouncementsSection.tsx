@@ -23,7 +23,7 @@ export function AnnouncementsSection({
         <ThemedText type="subtitle">Anuncios</ThemedText>
         {hasMore && (
           <ThemedText
-            style={[styles.viewAll, { color: colors.riovoley.primary }]}
+            style={[styles.viewAll, { color: colors.riovoley.gold }]}
             onPress={onViewAll}>
             Ver todos
           </ThemedText>
@@ -86,3 +86,4 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 });
+

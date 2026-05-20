@@ -1,73 +1,69 @@
 import { Redirect, Tabs } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { colors } from '@/shared/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { supabase } from '@/lib/supabase';
+import { useSessionRole } from '@/shared/auth/useSessionRole';
+import { canAccessAthletes } from '@/shared/navigation/roleTabs';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const [checking, setChecking] = useState(true);
-  const [hasSession, setHasSession] = useState(false);
+  const { loading, hasSession, role } = useSessionRole();
 
-  useEffect(() => {
-    let mounted = true;
+  if (loading) return null;
+  if (!hasSession) return <Redirect href="/login" />;
 
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) {
-        return;
-      }
-
-      setHasSession(!!data.session);
-      setChecking(false);
-    };
-
-    checkSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setHasSession(!!session);
-      setChecking(false);
-    });
-
-    return () => {
-      mounted = false;
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  if (checking) {
-    return null;
-  }
-
-  if (!hasSession) {
-    return <Redirect href="/login" />;
-  }
+  const showAthletes = canAccessAthletes(role);
 
   return (
     <Tabs
-      initialRouteName="athletes"
+      initialRouteName="index"
       screenOptions={{
-        tabBarActiveTintColor: colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: colors[colorScheme ?? 'dark'].tabIconSelected,
+        tabBarInactiveTintColor: colors[colorScheme ?? 'dark'].tabIconDefault,
+        tabBarStyle: {
+          backgroundColor: colors.riovoley.navy,
+          borderTopColor: 'rgba(245, 179, 58, 0.35)',
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarLabelStyle: { fontWeight: '700' },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Inicio',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons size={size} name="home" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="announcements"
+        options={{
+          title: 'Anuncios',
+          tabBarIcon: ({ color, size }) => <Ionicons size={size} name="megaphone" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color, size }) => <Ionicons size={size} name="person" color={color} />,
         }}
       />
       <Tabs.Screen
         name="athletes"
         options={{
+          href: showAthletes ? undefined : null,
           title: 'Atletas',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.3.fill" color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons size={size} name="people" color={color} />,
         }}
       />
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }

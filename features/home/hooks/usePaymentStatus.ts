@@ -1,13 +1,9 @@
-/**
- * Hook to fetch attendance status
- */
-
 import { useEffect, useState } from 'react';
 import { homeService } from '../services/homeService';
-import { HomeAttendance } from '../types/home.types';
+import type { HomePayment } from '../types/home.types';
 
-export function useAttendance(userId: string | undefined) {
-  const [attendance, setAttendance] = useState<HomeAttendance | null>(null);
+export function usePaymentStatus(userId: string | undefined) {
+  const [paymentStatus, setPaymentStatus] = useState<HomePayment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,21 +13,22 @@ export function useAttendance(userId: string | undefined) {
       return;
     }
 
-    const fetchAttendance = async () => {
+    const fetchPaymentStatus = async () => {
       setLoading(true);
+
       try {
-        const data = await homeService.fetchAttendanceStatus(userId);
-        setAttendance(data);
+        const data = await homeService.fetchPaymentStatus(userId);
+        setPaymentStatus(data);
         setError(null);
-      } catch (err) {
-        setError('Failed to load attendance');
+      } catch {
+        setError('No se pudo cargar el estado de pago.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAttendance();
+    fetchPaymentStatus();
   }, [userId]);
 
-  return { attendance, loading, error };
+  return { paymentStatus, loading, error };
 }

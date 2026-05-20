@@ -16,12 +16,14 @@ const HEADER_HEIGHT = 250;
 type Props = PropsWithChildren<{
   headerImage: ReactElement;
   headerBackgroundColor: { dark: string; light: string };
+  stickyHeader?: ReactElement;
 }>;
 
 export function ParallaxScrollView({
   children,
   headerImage,
   headerBackgroundColor,
+  stickyHeader,
 }: Props) {
   const backgroundColor = useThemeColor({}, 'background');
   const colorScheme = useColorScheme() ?? 'light';
@@ -44,21 +46,40 @@ export function ParallaxScrollView({
     };
   });
 
+  const stickyHeaderAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(scrollOffset.value, [90, 130], [0, 1]),
+      transform: [
+        {
+          translateY: interpolate(scrollOffset.value, [90, 130], [-14, 0]),
+        },
+      ],
+    };
+  });
+
   return (
-    <Animated.ScrollView
-      ref={scrollRef}
-      style={{ backgroundColor, flex: 1 }}
-      scrollEventThrottle={16}>
-      <Animated.View
-        style={[
-          styles.header,
-          { backgroundColor: headerBackgroundColor[colorScheme] },
-          headerAnimatedStyle,
-        ]}>
-        {headerImage}
-      </Animated.View>
-      <ThemedView style={styles.content}>{children}</ThemedView>
-    </Animated.ScrollView>
+    <ThemedView style={styles.container}>
+      <Animated.ScrollView
+        ref={scrollRef}
+        style={{ backgroundColor, flex: 1 }}
+        stickyHeaderIndices={stickyHeader ? [1] : undefined}
+        scrollEventThrottle={16}>
+        <Animated.View
+          style={[
+            styles.header,
+            { backgroundColor: headerBackgroundColor[colorScheme] },
+            headerAnimatedStyle,
+          ]}>
+          {headerImage}
+        </Animated.View>
+        {stickyHeader ? (
+          <Animated.View style={[styles.stickyHeaderInFlow, stickyHeaderAnimatedStyle]}>
+            {stickyHeader}
+          </Animated.View>
+        ) : null}
+        <ThemedView style={styles.content}>{children}</ThemedView>
+      </Animated.ScrollView>
+    </ThemedView>
   );
 }
 
@@ -75,5 +96,9 @@ const styles = StyleSheet.create({
     padding: 32,
     gap: 16,
     overflow: 'hidden',
+  },
+  stickyHeaderInFlow: {
+    zIndex: 10,
+    elevation: 10,
   },
 });

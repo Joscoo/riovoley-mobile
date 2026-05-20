@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Button, Platform, StyleSheet, View, ScrollView } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { ParallaxScrollView, ThemedText, ThemedView } from '@/shared/components';
+import { ParallaxScrollView } from '@/shared/components';
 import { spacing } from '@/shared/theme';
 
 import {
@@ -13,24 +15,26 @@ import {
   SummaryMetrics,
 } from '../components';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { useAnnouncements } from '../hooks/useAnnouncements';
 import { useNextTraining } from '../hooks/useNextTraining';
-import { useAttendance } from '../hooks/usePaymentStatus';
+import { useAttendance } from '../hooks/useAttendance';
+import { usePaymentStatus } from '../hooks/usePaymentStatus';
+import { useAnnouncements } from '@/features/announcements/hooks/useAnnouncements';
 import type { QuickAccessItem } from '../components/QuickAccessGrid';
-import { Image } from 'expo-image';
+import { useSessionRole } from '@/shared/auth/useSessionRole';
+import { canAccessAthletes } from '@/shared/navigation/roleTabs';
 
 export default function HomeScreen() {
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { role } = useSessionRole();
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | undefined>();
 
-  // Hooks for data
-  const { profile, loading: profileLoading } = useUserProfile(userId);
-  const { announcements, loading: announcementsLoading } = useAnnouncements(3);
+  const { profile } = useUserProfile(userId);
+  const { announcements, loading: announcementsLoading } = useAnnouncements(role, 3);
   const { training, loading: trainingLoading } = useNextTraining(userId);
-  const { attendance, loading: attendanceLoading } = useAttendance(userId);
+  const { attendance } = useAttendance(userId);
+  const { paymentStatus, loading: paymentLoading } = usePaymentStatus(userId);
 
-  // Initialize session
   useEffect(() => {
     let mounted = true;
 
@@ -38,22 +42,16 @@ export default function HomeScreen() {
       const { data } = await supabase.auth.getSession();
       if (!mounted) return;
 
-      const currentEmail = data.session?.user?.email ?? null;
-      const currentUserId = data.session?.user?.id;
-      setSessionEmail(currentEmail);
-      setUserId(currentUserId);
+      setSessionEmail(data.session?.user?.email ?? null);
+      setUserId(data.session?.user?.id);
     };
 
     init();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, nextSession) => {
-        const nextEmail = nextSession?.user?.email ?? null;
-        const nextUserId = nextSession?.user?.id;
-        setSessionEmail(nextEmail);
-        setUserId(nextUserId);
-      },
-    );
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+      setSessionEmail(nextSession?.user?.email ?? null);
+      setUserId(nextSession?.user?.id);
+    });
 
     return () => {
       mounted = false;
@@ -61,126 +59,79 @@ export default function HomeScreen() {
     };
   }, []);
 
-  const handleSignOut = async () => {
-    setLoading(true);
-    await supabase.auth.signOut();
-    setLoading(false);
-  };
-
-  // Quick access items
   const quickAccessItems: QuickAccessItem[] = [
-    {
-      id: 'schedules',
-      label: 'Horarios',
-      icon: '📅',
-      onPress: () => console.log('Navigate to schedules'),
-    },
-    {
-      id: 'attendance',
-      label: 'Asistencia',
-      icon: '✅',
-      onPress: () => console.log('Navigate to attendance'),
-    },
-    {
-      id: 'payments',
-      label: 'Pagos',
-      icon: '💳',
-      onPress: () => console.log('Navigate to payments'),
-    },
-    {
-      id: 'progress',
-      label: 'Progreso',
-      icon: '📈',
-      onPress: () => console.log('Navigate to progress'),
-    },
-    {
-      id: 'announcements',
-      label: 'Anuncios',
-      icon: '📢',
-      onPress: () => console.log('Navigate to announcements'),
-    },
-    {
-      id: 'profile',
-      label: 'Perfil',
-      icon: '👤',
-      onPress: () => console.log('Navigate to profile'),
-    },
+    { id: 'profile', label: 'Perfil', iconName: 'person-circle-outline', onPress: () => router.push('/(tabs)/profile') },
+    { id: 'announcements', label: 'Anuncios', iconName: 'megaphone-outline', onPress: () => router.push('/(tabs)/announcements') },
+    ...(canAccessAthletes(role)
+      ? [{ id: 'athletes', label: 'Atletas', iconName: 'people-outline' as const, onPress: () => router.push('/(tabs)/athletes') }]
+      : []),
   ];
 
-  // Summary metrics
   const summaryMetrics = [
+    { label: 'Asistencia', value: `${attendance?.percentage ?? 0}%`, iconName: 'checkmark-circle-outline' as const },
+    { label: 'Próximo', value: training ? training.day_of_week.slice(0, 3) : 'N/A', iconName: 'calendar-outline' as const },
     {
-      label: 'Asistencia',
-      value: `${attendance?.percentage ?? 0}%`,
-      icon: '✅',
+      label: 'Pago',
+      value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al día',
+      iconName: 'card-outline' as const,
     },
-    {
-      label: 'Próximo',
-      value: training ? training.day_of_week.slice(0, 3) : 'N/A',
-      icon: '📅',
-    },
-    {
-      label: 'Anuncios',
-      value: announcements.length,
-      icon: '📢',
-    },
+    { label: 'Anuncios', value: announcements.length, iconName: 'megaphone-outline' as const },
   ];
 
-  // Alerts
   const alerts = [
-    ...(attendance && !attendance.attended ? [{ type: 'warning' as const, message: 'Asistencia pendiente esta semana' }] : []),
-    ...(announcements.length > 0 ? [{ type: 'info' as const, message: `${announcements.length} nuevo(s) anuncio(s)` }] : []),
+    ...(attendance && !attendance.attended
+      ? [{ type: 'warning' as const, message: 'Asistencia pendiente esta semana' }]
+      : []),
+    ...(paymentStatus?.pending
+      ? [
+          {
+            type: 'warning' as const,
+            message: `Pago pendiente${paymentStatus.amount ? ` de $${paymentStatus.amount}` : ''}`,
+          },
+        ]
+      : []),
+    ...(announcements.length > 0
+      ? [{ type: 'info' as const, message: `${announcements.length} nuevo(s) anuncio(s)` }]
+      : []),
   ];
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerBackgroundColor={{ light: '#294B96', dark: '#1B3470' }}
+      stickyHeader={
+        <View style={styles.stickyBar}>
+          <Image source={require('@/assets/images/logoRio.png')} style={styles.stickyLogo} contentFit="contain" />
+        </View>
+      }
       headerImage={
         <View style={styles.headerImage}>
-          {/* RioVoley branding could go here */}
-          <ThemedText type="title" style={styles.headerText}>
-            🏐 RioVoley
-          </ThemedText>
+          <View style={styles.metalLayerPrimary} />
+          <View style={styles.metalLayerSecondary} />
+          <View style={styles.nacarGlowTop} />
+          <View style={styles.nacarGlowBottom} />
+          <View style={styles.goldLine} />
+
+          <View style={styles.brandPlate}>
+            <Image source={require('@/assets/images/logoRio.png')} style={styles.logo} contentFit="contain" />
+          </View>
         </View>
       }>
-      {/* Profile Header */}
-      <ProfileHeader
-        name={profile?.full_name ?? null}
-        role={profile?.role ?? null}
-        email={sessionEmail}
-      />
+      <ProfileHeader name={profile?.full_name ?? null} role={profile?.role ?? null} email={sessionEmail} />
 
-      {/* Sign Out Button (temporary, for testing) */}
-      <View style={styles.signOutContainer}>
-        <Button title="Cerrar sesión" onPress={handleSignOut} disabled={loading} />
-      </View>
-
-      {/* Summary Metrics */}
       <SummaryMetrics metrics={summaryMetrics} />
-
-      {/* Next Training */}
       <NextTrainingCard training={training} loading={trainingLoading} />
-
-      {/* Quick Access Grid */}
       <QuickAccessGrid items={quickAccessItems} columns={3} />
-
-      {/* Announcements */}
       <AnnouncementsSection
-        announcements={announcements}
+        announcements={announcements.map((a) => ({
+          id: a.id,
+          title: a.title,
+          content: a.content ?? undefined,
+          created_at: a.createdAt ?? undefined,
+        }))}
         loading={announcementsLoading}
-        onViewAll={() => console.log('View all announcements')}
+        onViewAll={() => router.push('/(tabs)/announcements')}
       />
-
-      {/* Alerts */}
       <AlertsSection alerts={alerts} />
-
-      {/* Debug Info (remove in production) */}
-      <ThemedView style={styles.debugContainer}>
-        <ThemedText type="subtitle">Debug Info</ThemedText>
-        <ThemedText>Session: {sessionEmail || 'No session'}</ThemedText>
-        <ThemedText>Profile Loading: {profileLoading ? 'yes' : 'no'}</ThemedText>
-        <ThemedText>Announcements: {announcements.length}</ThemedText>
-      </ThemedView>
     </ParallaxScrollView>
   );
 }
@@ -190,19 +141,78 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+    backgroundColor: '#274A96',
   },
-  headerText: {
-    color: '#fff',
+  metalLayerPrimary: {
+    position: 'absolute',
+    top: -110,
+    left: -100,
+    width: 440,
+    height: 260,
+    borderRadius: 180,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    transform: [{ rotate: '-9deg' }],
   },
-  signOutContainer: {
+  metalLayerSecondary: {
+    position: 'absolute',
+    right: -95,
+    bottom: -90,
+    width: 360,
+    height: 250,
+    borderRadius: 170,
+    backgroundColor: 'rgba(20, 40, 90, 0.40)',
+    transform: [{ rotate: '14deg' }],
+  },
+  nacarGlowTop: {
+    position: 'absolute',
+    top: 10,
+    right: 20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 238, 194, 0.34)',
+  },
+  nacarGlowBottom: {
+    position: 'absolute',
+    bottom: 12,
+    left: 32,
+    width: 98,
+    height: 98,
+    borderRadius: 49,
+    backgroundColor: 'rgba(245, 179, 58, 0.26)',
+  },
+  goldLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 2,
+    backgroundColor: 'rgba(245, 179, 58, 0.60)',
+  },
+  brandPlate: {
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 243, 201, 0.52)',
+    backgroundColor: 'rgba(18, 53, 120, 0.40)',
   },
-  debugContainer: {
-    marginHorizontal: spacing[4],
-    marginVertical: spacing[4],
-    padding: spacing[3],
-    borderRadius: 8,
-    opacity: 0.6,
+  logo: {
+    width: 176,
+    height: 54,
+  },
+  stickyBar: {
+    height: 58,
+    paddingTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(23, 51, 112, 0.97)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(245, 179, 58, 0.55)',
+  },
+  stickyLogo: {
+    width: 108,
+    height: 30,
   },
 });

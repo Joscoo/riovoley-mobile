@@ -1,6 +1,7 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { ThemedText, AppCard } from '@/shared/components';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, fontWeights } from '@/shared/theme';
 
 interface Alert {
   type: 'warning' | 'danger' | 'info';
@@ -14,44 +15,32 @@ interface AlertsSectionProps {
 export function AlertsSection({ alerts }: AlertsSectionProps) {
   if (alerts.length === 0) return null;
 
-  const getAlertColor = (type: Alert['type']) => {
+  const tone = (type: Alert['type']) => {
     switch (type) {
       case 'danger':
-        return colors.riovoley.danger;
+        return { color: colors.riovoley.danger, icon: 'error' as const };
       case 'warning':
-        return colors.riovoley.warning;
-      case 'info':
+        return { color: colors.riovoley.warning, icon: 'warning' as const };
       default:
-        return colors.riovoley.info;
-    }
-  };
-
-  const getAlertIcon = (type: Alert['type']) => {
-    switch (type) {
-      case 'danger':
-        return '🚨';
-      case 'warning':
-        return '⚠️';
-      case 'info':
-      default:
-        return 'ℹ️';
+        return { color: colors.riovoley.info, icon: 'info' as const };
     }
   };
 
   return (
     <View style={styles.container}>
-      {alerts.map((alert, index) => (
-        <AppCard key={`alert-${index}`} style={styles.alert}>
-          <View style={styles.content}>
-            <ThemedText style={styles.icon}>{getAlertIcon(alert.type)}</ThemedText>
-            <ThemedText
-              style={[styles.message, { color: getAlertColor(alert.type) }]}
-              numberOfLines={2}>
-              {alert.message}
-            </ThemedText>
-          </View>
-        </AppCard>
-      ))}
+      {alerts.map((alert, index) => {
+        const { color, icon } = tone(alert.type);
+        return (
+          <AppCard key={`alert-${index}`} style={[styles.alert, { borderLeftColor: color }]}> 
+            <View style={styles.content}>
+              <MaterialIcons name={icon} size={20} color={color} />
+              <ThemedText style={[styles.message, { color }]} numberOfLines={2}>
+                {alert.message}
+              </ThemedText>
+            </View>
+          </AppCard>
+        );
+      })}
     </View>
   );
 }
@@ -64,19 +53,15 @@ const styles = StyleSheet.create({
   alert: {
     marginVertical: spacing[1],
     borderLeftWidth: 4,
-    borderLeftColor: colors.riovoley.warning,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
   },
-  icon: {
-    fontSize: 20,
-  },
   message: {
     flex: 1,
-    fontWeight: '500',
+    fontWeight: fontWeights.semibold,
     fontSize: 13,
   },
 });
