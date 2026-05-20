@@ -1,42 +1,21 @@
 import { Redirect, Tabs } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { colors } from '@/shared/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { supabase } from '@/lib/supabase';
+import { useSessionRole } from '@/shared/auth/useSessionRole';
+import { canAccessAthletes } from '@/shared/navigation/roleTabs';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const [checking, setChecking] = useState(true);
-  const [hasSession, setHasSession] = useState(false);
+  const { loading, hasSession, role } = useSessionRole();
 
-  useEffect(() => {
-    let mounted = true;
-
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) return;
-      setHasSession(!!data.session);
-      setChecking(false);
-    };
-
-    checkSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setHasSession(!!session);
-      setChecking(false);
-    });
-
-    return () => {
-      mounted = false;
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  if (checking) return null;
+  if (loading) return null;
   if (!hasSession) return <Redirect href="/login" />;
+
+  const showAthletes = canAccessAthletes(role);
 
   return (
     <Tabs
@@ -79,6 +58,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="athletes"
         options={{
+          href: showAthletes ? undefined : null,
           title: 'Atletas',
           tabBarIcon: ({ color, size }) => <Ionicons size={size} name="people" color={color} />,
         }}

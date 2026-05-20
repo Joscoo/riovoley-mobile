@@ -1,8 +1,4 @@
-/**
- * Home feature index
- */
-
-export { HomeScreen } from './screens';
-export * from './components';
-export * from './hooks';
-export * from './types/home.types';
+export { default as HomeScreen } from './screens/HomeScreen';
+export { default as AdminHomeScreen } from './screens/AdminHomeScreen';
+export { default as CoachHomeScreen } from './screens/CoachHomeScreen';
+export { default as StudentHomeScreen } from './screens/StudentHomeScreen';

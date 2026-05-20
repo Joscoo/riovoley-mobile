@@ -20,9 +20,12 @@ import { useAttendance } from '../hooks/useAttendance';
 import { usePaymentStatus } from '../hooks/usePaymentStatus';
 import { useAnnouncements } from '@/features/announcements/hooks/useAnnouncements';
 import type { QuickAccessItem } from '../components/QuickAccessGrid';
+import { useSessionRole } from '@/shared/auth/useSessionRole';
+import { canAccessAthletes } from '@/shared/navigation/roleTabs';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { role } = useSessionRole();
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | undefined>();
 
@@ -59,15 +62,17 @@ export default function HomeScreen() {
   const quickAccessItems: QuickAccessItem[] = [
     { id: 'profile', label: 'Perfil', iconName: 'person-circle-outline', onPress: () => router.push('/(tabs)/profile') },
     { id: 'announcements', label: 'Anuncios', iconName: 'megaphone-outline', onPress: () => router.push('/(tabs)/announcements') },
-    { id: 'athletes', label: 'Atletas', iconName: 'people-outline', onPress: () => router.push('/(tabs)/athletes') },
+    ...(canAccessAthletes(role)
+      ? [{ id: 'athletes', label: 'Atletas', iconName: 'people-outline' as const, onPress: () => router.push('/(tabs)/athletes') }]
+      : []),
   ];
 
   const summaryMetrics = [
     { label: 'Asistencia', value: `${attendance?.percentage ?? 0}%`, iconName: 'checkmark-circle-outline' as const },
-    { label: 'Próximo', value: training ? training.day_of_week.slice(0, 3) : 'N/A', iconName: 'calendar-outline' as const },
+    { label: 'PrÃ³ximo', value: training ? training.day_of_week.slice(0, 3) : 'N/A', iconName: 'calendar-outline' as const },
     {
       label: 'Pago',
-      value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al día',
+      value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al dÃ­a',
       iconName: 'card-outline' as const,
     },
     { label: 'Anuncios', value: announcements.length, iconName: 'megaphone-outline' as const },

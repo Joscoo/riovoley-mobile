@@ -11,8 +11,10 @@ import {
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { fonts } from '@/shared/theme';
-import { ThemedText, ThemedView } from '@/shared/components';
+import { EmptyState, LoadingState, ThemedText, ThemedView } from '@/shared/components';
 import { supabase } from '@/lib/supabase';
+import { useSessionRole } from '@/shared/auth/useSessionRole';
+import { canAccessAthletes } from '@/shared/navigation/roleTabs';
 
 type AthleteRecord = Record<string, unknown> & {
   id?: string | number;
@@ -57,15 +59,15 @@ function formatLabel(key: string) {
 
 function formatValue(value: unknown) {
   if (value === null || value === undefined) {
-    return '—';
+    return 'â€”';
   }
 
   if (typeof value === 'boolean') {
-    return value ? 'Sí' : 'No';
+    return value ? 'SÃ­' : 'No';
   }
 
   if (Array.isArray(value)) {
-    return value.length > 0 ? value.map(formatValue).join(', ') : '—';
+    return value.length > 0 ? value.map(formatValue).join(', ') : 'â€”';
   }
 
   if (typeof value === 'object') {
@@ -73,18 +75,18 @@ function formatValue(value: unknown) {
   }
 
   const text = String(value).trim();
-  return text.length > 0 ? text : '—';
+  return text.length > 0 ? text : 'â€”';
 }
 
 function getDisplayName(row: AthleteRecord) {
   const fullName = formatValue(row.full_name);
-  if (fullName !== '—') {
+  if (fullName !== 'â€”') {
     return fullName;
   }
 
   const composedName = [row.first_name, row.last_name]
     .map(formatValue)
-    .filter((part) => part !== '—')
+    .filter((part) => part !== 'â€”')
     .join(' ')
     .trim();
 
@@ -94,7 +96,7 @@ function getDisplayName(row: AthleteRecord) {
 
   const directName = [row.name, row.email]
     .map(formatValue)
-    .find((value) => value !== '—');
+    .find((value) => value !== 'â€”');
 
   return directName ?? 'Nombre no disponible';
 }
@@ -102,15 +104,15 @@ function getDisplayName(row: AthleteRecord) {
 function getSummary(row: AthleteRecord) {
   const summaryCandidates = [row.category, row.role, row.status, row.email]
     .map(formatValue)
-    .filter((value) => value !== '—');
+    .filter((value) => value !== 'â€”');
 
-  return summaryCandidates[0] ?? 'Sin categoría';
+  return summaryCandidates[0] ?? 'Sin categorÃ­a';
 }
 
 function getAvatarUri(row: AthleteRecord) {
   const candidates = [row.avatar_url, row.photo_url, row.image_url]
     .map(formatValue)
-    .filter((value) => value !== '—');
+    .filter((value) => value !== 'â€”');
 
   return candidates[0] ?? null;
 }
@@ -214,6 +216,7 @@ function MetaPill({ label, value }: { label: string; value: string }) {
 }
 
 export default function AthletesScreen() {
+  const { loading: roleLoading, role } = useSessionRole();
   const [athletes, setAthletes] = useState<AthleteRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -289,6 +292,21 @@ export default function AthletesScreen() {
 
   const athletesCount = useMemo(() => athletes.length, [athletes.length]);
 
+  if (roleLoading) {
+    return <LoadingState message="Validando permisos..." />;
+  }
+
+  if (!canAccessAthletes(role)) {
+    return (
+      <ThemedView style={styles.screen}>
+        <EmptyState
+          title="Acceso denegado"
+          message="No tienes permisos para acceder al panel de atletas."
+        />
+      </ThemedView>
+    );
+  }
+
   if (loading) {
     return (
       <ThemedView style={styles.screen}>
@@ -341,7 +359,7 @@ export default function AthletesScreen() {
               <View style={styles.emptyState}>
                 <ThemedText style={styles.emptyTitle}>No hay atletas para mostrar</ThemedText>
                 <ThemedText style={styles.emptyText}>
-                  La consulta se ejecutó correctamente, pero la tabla no devolvió registros.
+                  La consulta se ejecutÃ³ correctamente, pero la tabla no devolviÃ³ registros.
                 </ThemedText>
               </View>
             ) : null}
@@ -352,7 +370,7 @@ export default function AthletesScreen() {
             <View style={styles.emptyState}>
               <ThemedText style={styles.emptyTitle}>Sin resultados</ThemedText>
               <ThemedText style={styles.emptyText}>
-                Si esperabas ver atletas aquí, revisa los permisos RLS o confirma que la tabla de Supabase tenga datos.
+                Si esperabas ver atletas aquÃ­, revisa los permisos RLS o confirma que la tabla de Supabase tenga datos.
               </ThemedText>
             </View>
           )

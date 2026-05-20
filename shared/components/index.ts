@@ -16,6 +16,7 @@ export { MetricCard } from './MetricCard';
 export { SectionHeader } from './SectionHeader';
 export { PrimaryActionButton } from './PrimaryActionButton';
 export { StatusBadge } from './StatusBadge';
+export { RoleGuard } from './RoleGuard';
 
 // Re-export types
 export type { ThemedTextProps } from './ThemedText';
