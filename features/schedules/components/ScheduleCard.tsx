@@ -7,12 +7,28 @@ import type { ScheduleItem } from '../types/schedule.types';
 interface ScheduleCardProps {
   item: ScheduleItem;
   canEdit: boolean;
+  canDelete: boolean;
   canRemind: boolean;
+  isConfirmingDelete: boolean;
   onEdit: (item: ScheduleItem) => void;
+  onDelete: (item: ScheduleItem) => void;
+  onCancelDelete: () => void;
+  onConfirmDelete: (item: ScheduleItem) => void;
   onRemind: (item: ScheduleItem) => void;
 }
 
-export function ScheduleCard({ item, canEdit, canRemind, onEdit, onRemind }: ScheduleCardProps) {
+export function ScheduleCard({
+  item,
+  canEdit,
+  canDelete,
+  canRemind,
+  isConfirmingDelete,
+  onEdit,
+  onDelete,
+  onCancelDelete,
+  onConfirmDelete,
+  onRemind,
+}: ScheduleCardProps) {
   const category = (item.category || '').toLowerCase();
   const categoryLabel =
     category === 'open_gym'
@@ -46,7 +62,27 @@ export function ScheduleCard({ item, canEdit, canRemind, onEdit, onRemind }: Sch
             <ThemedText style={styles.actionText}>Modificar</ThemedText>
           </Pressable>
         ) : null}
+        {canDelete ? (
+          <Pressable style={styles.actionBtn} onPress={() => onDelete(item)}>
+            <Ionicons name="trash-outline" size={16} color={colors.riovoley.gold} />
+            <ThemedText style={styles.actionText}>Eliminar</ThemedText>
+          </Pressable>
+        ) : null}
       </View>
+
+      {isConfirmingDelete ? (
+        <View style={styles.confirmBox}>
+          <ThemedText style={styles.confirmText}>¿Seguro que deseas eliminar este horario?</ThemedText>
+          <View style={styles.confirmActions}>
+            <Pressable style={styles.confirmCancelBtn} onPress={onCancelDelete}>
+              <ThemedText style={styles.confirmCancelText}>Cancelar</ThemedText>
+            </Pressable>
+            <Pressable style={styles.confirmDeleteBtn} onPress={() => onConfirmDelete(item)}>
+              <ThemedText style={styles.confirmDeleteText}>Aceptar</ThemedText>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
     </AppCard>
   );
 }
@@ -75,4 +111,29 @@ const styles = StyleSheet.create({
   actions: { marginTop: spacing[2], flexDirection: 'row', gap: spacing[3], flexWrap: 'wrap' },
   actionBtn: { flexDirection: 'row', gap: spacing[1], alignItems: 'center' },
   actionText: { color: colors.riovoley.gold, fontSize: 12, fontWeight: '700' },
+  confirmBox: {
+    marginTop: spacing[2],
+    borderWidth: 1,
+    borderColor: 'rgba(245,179,58,0.28)',
+    borderRadius: 10,
+    padding: spacing[2],
+    backgroundColor: 'rgba(2,12,38,0.35)',
+  },
+  confirmText: { fontSize: 12, marginBottom: spacing[2] },
+  confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing[2] },
+  confirmCancelBtn: {
+    borderWidth: 1,
+    borderColor: 'rgba(245,179,58,0.35)',
+    borderRadius: 8,
+    paddingHorizontal: spacing[2],
+    paddingVertical: 6,
+  },
+  confirmDeleteBtn: {
+    backgroundColor: colors.riovoley.gold,
+    borderRadius: 8,
+    paddingHorizontal: spacing[2],
+    paddingVertical: 6,
+  },
+  confirmCancelText: { color: colors.riovoley.pearl, fontSize: 12, fontWeight: '700' },
+  confirmDeleteText: { color: colors.riovoley.dark, fontSize: 12, fontWeight: '800' },
 });

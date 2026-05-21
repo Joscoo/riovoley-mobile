@@ -4,6 +4,15 @@ import { USER_ROLES } from '@/shared/constants/app.constants';
 
 export type AppRole = 'administrador' | 'entrenador' | 'estudiante' | 'usuario' | null;
 
+const withTimeout = async <T>(promise: Promise<T>, ms = 10000): Promise<T> => {
+  return await Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout resolving session role')), ms)
+    ),
+  ]);
+};
+
 export function normalizeRole(role?: string | null): AppRole {
   const normalized = (role || '').trim().toLowerCase();
   if (!normalized) return null;
@@ -21,6 +30,11 @@ export function useSessionRole() {
 
   useEffect(() => {
     let mounted = true;
+    let safetyTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+      if (!mounted) return;
+      // Failsafe: nunca quedar en loading infinito.
+      setLoading(false);
+    }, 12000);
 
     const resolveRole = async (nextUserId?: string) => {
       if (!nextUserId) {
@@ -29,11 +43,22 @@ export function useSessionRole() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('id', nextUserId)
-        .single();
+      let data: { role?: string | null } | null = null;
+      let error: unknown = null;
+      try {
+        const result = await withTimeout(
+          supabase
+            .from('user_profiles')
+            .select('role')
+            .eq('id', nextUserId)
+            .single(),
+          10000
+        );
+        data = result.data;
+        error = result.error;
+      } catch {
+        error = new Error('resolveRole timeout');
+      }
 
       if (!mounted) return;
       if (error) {
@@ -44,14 +69,22 @@ export function useSessionRole() {
     };
 
     const load = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) return;
+      try {
+        const { data } = await withTimeout(supabase.auth.getSession(), 10000);
+        if (!mounted) return;
 
-      const nextUserId = data.session?.user?.id ?? null;
-      setUserId(nextUserId);
-      setHasSession(!!data.session);
-      await resolveRole(nextUserId || undefined);
-      if (mounted) setLoading(false);
+        const nextUserId = data.session?.user?.id ?? null;
+        setUserId(nextUserId);
+        setHasSession(!!data.session);
+        await resolveRole(nextUserId || undefined);
+      } catch {
+        if (!mounted) return;
+        setUserId(null);
+        setHasSession(false);
+        setRole(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
 
     load();
@@ -66,6 +99,10 @@ export function useSessionRole() {
 
     return () => {
       mounted = false;
+      if (safetyTimer) {
+        clearTimeout(safetyTimer);
+        safetyTimer = null;
+      }
       authListener.subscription.unsubscribe();
     };
   }, []);

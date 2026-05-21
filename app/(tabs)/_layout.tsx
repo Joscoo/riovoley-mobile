@@ -1,6 +1,7 @@
 import { Redirect, Tabs } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { colors } from '@/shared/theme';
@@ -19,7 +20,13 @@ export default function TabLayout() {
     bootstrapCategoryTrainingReminders(userId).catch(() => {});
   }, [userId]);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.riovoley.dark }}>
+        <ActivityIndicator color={colors.riovoley.gold} />
+      </View>
+    );
+  }
   if (!hasSession) return <Redirect href="/login" />;
 
   const showAthletes = canAccessAthletes(role);

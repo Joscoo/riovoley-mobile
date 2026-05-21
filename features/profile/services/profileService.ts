@@ -119,6 +119,7 @@ export const profileService = {
         fullName: null,
         email: userData.user.email ?? null,
         role: null,
+        lastPasswordChangeAt: userData.user.updated_at ?? null,
       };
     }
 
@@ -128,6 +129,7 @@ export const profileService = {
       email: userData.user.email ?? null,
       role: profile.role,
       createdAt: profile.created_at,
+      lastPasswordChangeAt: userData.user.updated_at ?? null,
     };
   },
 
@@ -162,10 +164,55 @@ export const profileService = {
         return { ok: false, code: 'AUTH', message: 'Sesion expirada. Inicia sesion nuevamente.' };
       }
 
-      return await runAuthOperation({
-        op: () => supabase.auth.updateUser({ password: newPassword }),
-        timeoutMs: 15000,
-        fallback: requestPasswordReset,
+      // En React Native Web, updateUser(password) puede quedarse pending por persistencia de sesión.
+      // Escuchamos USER_UPDATED y no dependemos de que la promesa resuelva.
+      return await new Promise<AuthOpResult>((resolve) => {
+        let settled = false;
+        let unsub = () => {};
+
+        const finish = (result: AuthOpResult) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
+          unsub();
+          resolve(result);
+        };
+
+        const timeoutId = setTimeout(() => {
+          supabase.auth.signOut().catch(() => {});
+          finish({
+            ok: false,
+            code: 'TIMEOUT',
+            mode: 'fallback',
+            message:
+              'La contrasena fue procesada y se cerrara la sesion automaticamente. Inicia sesion con tu nueva contrasena.',
+          });
+        }, 20000);
+
+        const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+          if (event === 'USER_UPDATED') {
+            supabase.auth.signOut().catch(() => {});
+            finish({ ok: true, mode: 'direct' });
+          }
+        });
+        unsub = () => listener.subscription.unsubscribe();
+
+        // Disparamos updateUser sin esperar que resuelva para evitar bloqueo en web.
+        supabase.auth.updateUser({ password: newPassword }).catch(async (error) => {
+          if (settled) return;
+
+          const fallbackResult = await requestPasswordReset();
+          if (fallbackResult.mode === 'fallback') {
+            finish(fallbackResult);
+            return;
+          }
+
+          finish({
+            ok: false,
+            code: 'AUTH',
+            message: error?.message || fallbackResult.message || 'No se pudo actualizar la contrasena.',
+          });
+        });
       });
     } catch (error) {
       return {
@@ -183,3 +230,4 @@ export const profileService = {
     });
   },
 };
+
