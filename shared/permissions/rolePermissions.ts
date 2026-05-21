@@ -65,7 +65,7 @@ export const getRoleLabel = (role: UserRole | string): string => {
   const labels = {
     [USER_ROLES.ADMIN]: 'Administrador',
     [USER_ROLES.COACH]: 'Entrenador',
-    [USER_ROLES.ATHLETE]: 'Estudiante',
+    [USER_ROLES.ATHLETE]: 'Atleta',
   };
   return (r && labels[r]) || 'Usuario';
 };
