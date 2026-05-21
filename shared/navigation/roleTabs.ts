@@ -2,14 +2,15 @@ import type { AppRole } from '@/shared/auth/useSessionRole';
 import { canAccessAthletesPanel } from '@/shared/permissions/rolePermissions';
 
 export interface RoleTabConfig {
-  name: 'index' | 'announcements' | 'profile' | 'athletes';
+  name: 'index' | 'announcements' | 'profile' | 'athletes' | 'schedules';
   title: string;
-  icon: 'home' | 'megaphone' | 'person' | 'people';
+  icon: 'home' | 'megaphone' | 'person' | 'people' | 'calendar';
 }
 
 const BASE_TABS: RoleTabConfig[] = [
   { name: 'index', title: 'Inicio', icon: 'home' },
   { name: 'announcements', title: 'Anuncios', icon: 'megaphone' },
+  { name: 'schedules', title: 'Horarios', icon: 'calendar' },
   { name: 'profile', title: 'Perfil', icon: 'person' },
 ];
 

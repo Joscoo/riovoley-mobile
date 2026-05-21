@@ -45,6 +45,16 @@ export const canCreateAnnouncements = (role: UserRole | string): boolean => {
   return r === USER_ROLES.ADMIN || r === USER_ROLES.COACH;
 };
 
+export const canManageSchedules = (role: UserRole | string): boolean => {
+  const r = normalizeToCoreRole(role);
+  return r === USER_ROLES.ADMIN;
+};
+
+export const canSendScheduleReminder = (role: UserRole | string): boolean => {
+  const r = normalizeToCoreRole(role);
+  return r === USER_ROLES.ADMIN || r === USER_ROLES.COACH;
+};
+
 export const canAccessAthletesPanel = (role: AppRole): boolean => {
   if (!role) return false;
   return canManageAthletes(role);

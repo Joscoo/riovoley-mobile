@@ -1,5 +1,5 @@
 import { Redirect, Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -7,10 +7,17 @@ import { colors } from '@/shared/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSessionRole } from '@/shared/auth/useSessionRole';
 import { canAccessAthletes } from '@/shared/navigation/roleTabs';
+import { bootstrapCategoryTrainingReminders, registerForPushNotifications } from '@/shared/notifications/pushNotifications';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { loading, hasSession, role } = useSessionRole();
+  const { loading, hasSession, role, userId } = useSessionRole();
+
+  useEffect(() => {
+    if (!userId) return;
+    registerForPushNotifications(userId).catch(() => {});
+    bootstrapCategoryTrainingReminders(userId).catch(() => {});
+  }, [userId]);
 
   if (loading) return null;
   if (!hasSession) return <Redirect href="/login" />;
@@ -46,6 +53,13 @@ export default function TabLayout() {
         options={{
           title: 'Anuncios',
           tabBarIcon: ({ color, size }) => <Ionicons size={size} name="megaphone" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="schedules"
+        options={{
+          title: 'Horarios',
+          tabBarIcon: ({ color, size }) => <Ionicons size={size} name="calendar" color={color} />,
         }}
       />
       <Tabs.Screen
