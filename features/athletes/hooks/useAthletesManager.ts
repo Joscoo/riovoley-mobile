@@ -38,12 +38,29 @@ export function useAthletesManager(canDelete: boolean) {
   const [message, setMessage] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
+  const normalize = (value: string | null | undefined) =>
+    (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+  const calculateAge = (birthDateString: string) => {
+    const birthDate = new Date(birthDateString);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age -= 1;
+    }
+    return age;
+  };
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [athletesData, categoriesData] = await Promise.all([
-        athletesService.fetchAthletes({ filters }),
+        athletesService.fetchAthletes(),
         athletesService.fetchCategories(),
       ]);
 
@@ -58,7 +75,7 @@ export function useAthletesManager(canDelete: boolean) {
     } finally {
       setLoading(false);
     }
-  }, [filters, form.categoria]);
+  }, [form.categoria]);
 
   useEffect(() => {
     loadData();
@@ -158,8 +175,62 @@ export function useAthletesManager(canDelete: boolean) {
 
   const sortedCountLabel = useMemo(() => `${athletes.length} atletas`, [athletes.length]);
 
+  const filteredAthletes = useMemo(() => {
+    let rows = [...athletes];
+
+    if (filters.status === 'active') rows = rows.filter((item) => !item.suspended);
+    if (filters.status === 'suspended') rows = rows.filter((item) => item.suspended);
+    if (filters.categoria) rows = rows.filter((item) => item.categoria === filters.categoria);
+
+    if (filters.search.trim()) {
+      const q = normalize(filters.search.trim());
+      rows = rows.filter((item) => (
+        normalize(item.full_name).includes(q)
+        || normalize(item.email).includes(q)
+        || normalize(item.categoria).includes(q)
+      ));
+    }
+
+    rows.sort((a, b) => {
+      let valueA: number | string = '';
+      let valueB: number | string = '';
+
+      switch (filters.sortBy) {
+        case 'nombre':
+          valueA = normalize(a.users.nombre);
+          valueB = normalize(b.users.nombre);
+          break;
+        case 'categoria':
+          valueA = normalize(a.categoria);
+          valueB = normalize(b.categoria);
+          break;
+        case 'edad':
+          valueA = a.fecha_nacimiento ? calculateAge(a.fecha_nacimiento) : Number.MAX_SAFE_INTEGER;
+          valueB = b.fecha_nacimiento ? calculateAge(b.fecha_nacimiento) : Number.MAX_SAFE_INTEGER;
+          break;
+        case 'ingreso':
+          valueA = a.users.created_at ? new Date(a.users.created_at).getTime() : Number.MAX_SAFE_INTEGER;
+          valueB = b.users.created_at ? new Date(b.users.created_at).getTime() : Number.MAX_SAFE_INTEGER;
+          break;
+        case 'apellido':
+        default:
+          valueA = normalize(a.users.apellido);
+          valueB = normalize(b.users.apellido);
+          break;
+      }
+
+      if (valueA < valueB) return filters.sortOrder === 'asc' ? -1 : 1;
+      if (valueA > valueB) return filters.sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return rows;
+  }, [athletes, filters]);
+
+  const filteredCountLabel = useMemo(() => `${filteredAthletes.length} atletas`, [filteredAthletes.length]);
+
   return {
-    athletes,
+    athletes: filteredAthletes,
     categories,
     filters,
     setFilters,
@@ -174,7 +245,7 @@ export function useAthletesManager(canDelete: boolean) {
     message,
     pendingDeleteId,
     setPendingDeleteId,
-    sortedCountLabel,
+    sortedCountLabel: filteredCountLabel,
     loadData,
     resetForm,
     handleCreateOrUpdate,

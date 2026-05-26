@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -22,10 +22,12 @@ import { useAnnouncements } from '@/features/announcements/hooks/useAnnouncement
 import type { QuickAccessItem } from '../components/QuickAccessGrid';
 import { useSessionRole } from '@/shared/auth/useSessionRole';
 import { canAccessAthletes } from '@/shared/navigation/roleTabs';
+import { canRegisterAttendance } from '@/shared/permissions/rolePermissions';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { role } = useSessionRole();
+  const isAdmin = role === 'administrador';
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | undefined>();
 
@@ -34,6 +36,7 @@ export default function HomeScreen() {
   const { training, loading: trainingLoading } = useNextTraining(userId);
   const { attendance } = useAttendance(userId);
   const { paymentStatus, loading: paymentLoading } = usePaymentStatus(userId);
+  const isAthleteView = role === 'estudiante' || role === 'usuario';
 
   useEffect(() => {
     let mounted = true;
@@ -59,24 +62,52 @@ export default function HomeScreen() {
     };
   }, []);
 
-  const quickAccessItems: QuickAccessItem[] = [
-    { id: 'profile', label: 'Perfil', iconName: 'person-circle-outline', onPress: () => router.push('/(tabs)/profile') },
-    { id: 'announcements', label: 'Anuncios', iconName: 'megaphone-outline', onPress: () => router.push('/(tabs)/announcements') },
-    ...(canAccessAthletes(role)
-      ? [{ id: 'athletes', label: 'Atletas', iconName: 'people-outline' as const, onPress: () => router.push('/(tabs)/athletes') }]
-      : []),
-  ];
+  const quickAccessItems: QuickAccessItem[] = isAdmin
+    ? [
+        { id: 'attendance', label: 'Asistencias', iconName: 'checkmark-done-outline', onPress: () => router.push('/(tabs)/attendance') },
+        { id: 'announcements', label: 'Anuncios', iconName: 'megaphone-outline', onPress: () => router.push('/(tabs)/announcements') },
+        { id: 'payments', label: 'Pagos', iconName: 'card-outline', onPress: () => router.push('/(tabs)/payments') },
+      ]
+    : [
+        { id: 'profile', label: 'Perfil', iconName: 'person-circle-outline', onPress: () => router.push('/(tabs)/profile') },
+        { id: 'announcements', label: 'Anuncios', iconName: 'megaphone-outline', onPress: () => router.push('/(tabs)/announcements') },
+        ...(canRegisterAttendance(role || '')
+          ? [{ id: 'attendance', label: 'Asistencias', iconName: 'checkmark-done-outline' as const, onPress: () => router.push('/(tabs)/attendance') }]
+          : []),
+        ...(canAccessAthletes(role)
+          ? [{ id: 'athletes', label: 'Atletas', iconName: 'people-outline' as const, onPress: () => router.push('/(tabs)/athletes') }]
+          : []),
+      ];
 
-  const summaryMetrics = [
-    { label: 'Asistencia', value: `${attendance?.percentage ?? 0}%`, iconName: 'checkmark-circle-outline' as const },
-    { label: 'Próximo', value: training ? training.day_of_week.slice(0, 3) : 'N/A', iconName: 'calendar-outline' as const },
-    {
-      label: 'Pago',
-      value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al día',
-      iconName: 'card-outline' as const,
-    },
-    { label: 'Anuncios', value: announcements.length, iconName: 'megaphone-outline' as const },
-  ];
+  const summaryMetrics = isAthleteView
+    ? [
+        {
+          label: 'Asistencia',
+          value: `${attendance?.percentage ?? 0}%`,
+          iconName: 'checkmark-circle-outline' as const,
+          onPress: () => router.push('/(tabs)/attendance'),
+        },
+        {
+          label: 'Pago',
+          value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al día',
+          iconName: 'card-outline' as const,
+          onPress: () => router.push('/(tabs)/payments'),
+        },
+      ]
+    : [
+        {
+          label: 'Asistencia',
+          value: `${attendance?.percentage ?? 0}%`,
+          iconName: 'checkmark-circle-outline' as const,
+        },
+        { label: 'Próximo', value: training ? training.day_of_week.slice(0, 3) : 'N/A', iconName: 'calendar-outline' as const },
+        {
+          label: 'Pago',
+          value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al día',
+          iconName: 'card-outline' as const,
+        },
+        { label: 'Anuncios', value: announcements.length, iconName: 'megaphone-outline' as const },
+      ];
 
   const alerts = [
     ...(attendance && !attendance.attended
@@ -118,9 +149,9 @@ export default function HomeScreen() {
       }>
       <ProfileHeader name={profile?.full_name ?? null} role={profile?.role ?? null} email={sessionEmail} />
 
-      <SummaryMetrics metrics={summaryMetrics} />
+      {!isAdmin ? <SummaryMetrics metrics={summaryMetrics} /> : null}
       <NextTrainingCard training={training} loading={trainingLoading} />
-      <QuickAccessGrid items={quickAccessItems} columns={3} />
+      <QuickAccessGrid items={quickAccessItems} columns={3} title={isAdmin ? 'Acciones rápidas' : 'Acceso rápido'} />
       <AnnouncementsSection
         announcements={announcements.map((a) => ({
           id: a.id,

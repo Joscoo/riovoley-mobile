@@ -8,7 +8,7 @@ import { colors } from '@/shared/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSessionRole } from '@/shared/auth/useSessionRole';
 import { canAccessAthletes } from '@/shared/navigation/roleTabs';
-import { bootstrapCategoryTrainingReminders, registerForPushNotifications } from '@/shared/notifications/pushNotifications';
+import { bootstrapCategoryTrainingReminders, bootstrapPaymentReminders, registerForPushNotifications } from '@/shared/notifications/pushNotifications';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -18,6 +18,7 @@ export default function TabLayout() {
     if (!userId) return;
     registerForPushNotifications(userId).catch(() => {});
     bootstrapCategoryTrainingReminders(userId).catch(() => {});
+    bootstrapPaymentReminders(userId).catch(() => {});
   }, [userId]);
 
   if (loading) {
@@ -30,6 +31,7 @@ export default function TabLayout() {
   if (!hasSession) return <Redirect href="/login" />;
 
   const showAthletes = canAccessAthletes(role);
+  const showAnnouncements = role !== 'administrador';
 
   return (
     <Tabs
@@ -58,8 +60,17 @@ export default function TabLayout() {
       <Tabs.Screen
         name="announcements"
         options={{
+          href: showAnnouncements ? undefined : null,
           title: 'Anuncios',
           tabBarIcon: ({ color, size }) => <Ionicons size={size} name="megaphone" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="payments"
+        options={{
+          href: null,
+          title: 'Pagos',
+          tabBarIcon: ({ color, size }) => <Ionicons size={size} name="card" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -84,6 +95,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons size={size} name="people" color={color} />,
         }}
       />
+      <Tabs.Screen name="attendance" options={{ href: null }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );

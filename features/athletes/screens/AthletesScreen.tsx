@@ -33,6 +33,7 @@ export default function AthletesScreen() {
     pendingDeleteId,
     setPendingDeleteId,
     sortedCountLabel,
+    loadData,
     resetForm,
     handleCreateOrUpdate,
     startEdit,
@@ -120,7 +121,7 @@ export default function AthletesScreen() {
 
             <View style={styles.summaryRow}>
               <ThemedText style={styles.summaryText}>{sortedCountLabel}</ThemedText>
-              <Pressable style={styles.refreshBtn} onPress={() => setFilters((prev) => ({ ...prev }))}>
+              <Pressable style={styles.refreshBtn} onPress={() => { void loadData(); }}>
                 <ThemedText style={styles.refreshText}>Refrescar</ThemedText>
               </Pressable>
             </View>

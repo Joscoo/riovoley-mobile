@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { USER_ROLES } from '@/shared/constants/app.constants';
 
 export type AppRole = 'administrador' | 'entrenador' | 'estudiante' | 'usuario' | null;
+
+let cachedRole: AppRole = null;
+let cachedUserId: string | null = null;
 
 const withTimeout = async <T>(promise: Promise<T>, ms = 10000): Promise<T> => {
   return await Promise.race([
@@ -25,47 +28,84 @@ export function normalizeRole(role?: string | null): AppRole {
 export function useSessionRole() {
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [role, setRole] = useState<AppRole>(null);
+  const [userId, setUserId] = useState<string | null>(cachedUserId);
+  const [role, setRole] = useState<AppRole>(cachedRole);
+  const roleRef = useRef<AppRole>(cachedRole);
+
+  useEffect(() => {
+    roleRef.current = role;
+  }, [role]);
 
   useEffect(() => {
     let mounted = true;
     let safetyTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
       if (!mounted) return;
-      // Failsafe: nunca quedar en loading infinito.
       setLoading(false);
-    }, 12000);
+    }, 15000);
+
+    const setResolvedRole = (nextRole: AppRole) => {
+      cachedRole = nextRole;
+      setRole(nextRole);
+    };
 
     const resolveRole = async (nextUserId?: string) => {
       if (!nextUserId) {
         if (!mounted) return;
-        setRole(null);
+        cachedUserId = null;
+        setResolvedRole(null);
         return;
       }
 
-      let data: { role?: string | null } | null = null;
-      let error: unknown = null;
+      // 1) canonical mobile source
       try {
-        const result = await withTimeout(
+        const profileResult = await withTimeout(
           supabase
             .from('user_profiles')
             .select('role')
             .eq('id', nextUserId)
-            .single(),
+            .maybeSingle(),
           10000
         );
-        data = result.data;
-        error = result.error;
+
+        if (profileResult.data?.role) {
+          if (!mounted) return;
+          setResolvedRole(normalizeRole(profileResult.data.role));
+          return;
+        }
       } catch {
-        error = new Error('resolveRole timeout');
+        // Continue to fallback source
+      }
+
+      // 2) fallback source compatible with schema migrations
+      try {
+        const usersResult = await withTimeout(
+          supabase
+            .from('users')
+            .select('role')
+            .eq('id', nextUserId)
+            .maybeSingle(),
+          10000
+        );
+
+        if (usersResult.data?.role) {
+          if (!mounted) return;
+          setResolvedRole(normalizeRole(usersResult.data.role));
+          return;
+        }
+      } catch {
+        // Ignore and keep previous role
       }
 
       if (!mounted) return;
-      if (error) {
-        setRole('usuario');
-      } else {
-        setRole(normalizeRole(data?.role));
+
+      // Never downgrade to "usuario" on transient failures.
+      if (roleRef.current) {
+        setRole(roleRef.current);
+        return;
       }
+
+      // Final safe default only if we truly have nothing cached.
+      setResolvedRole('usuario');
     };
 
     const load = async () => {
@@ -74,23 +114,26 @@ export function useSessionRole() {
         if (!mounted) return;
 
         const nextUserId = data.session?.user?.id ?? null;
+        cachedUserId = nextUserId;
         setUserId(nextUserId);
         setHasSession(!!data.session);
         await resolveRole(nextUserId || undefined);
       } catch {
         if (!mounted) return;
+        cachedUserId = null;
         setUserId(null);
         setHasSession(false);
-        setRole(null);
+        setResolvedRole(null);
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
-    load();
+    void load();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const nextUserId = session?.user?.id ?? null;
+      cachedUserId = nextUserId;
       setUserId(nextUserId);
       setHasSession(!!session);
       await resolveRole(nextUserId || undefined);

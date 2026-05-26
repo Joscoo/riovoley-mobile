@@ -8,3 +8,4 @@ export { NextTrainingCard } from './NextTrainingCard';
 export { AnnouncementsSection } from './AnnouncementsSection';
 export { AlertsSection } from './AlertsSection';
 export { SummaryMetrics } from './SummaryMetrics';
+export { UserPaymentsSection } from './UserPaymentsSection';

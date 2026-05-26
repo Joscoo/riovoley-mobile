@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView } from 'react-native';
+import { StyleSheet, View, ScrollView, Pressable } from 'react-native';
 import { type ComponentProps } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText, MetricCard } from '@/shared/components';
@@ -10,6 +10,7 @@ interface SummaryMetric {
   label: string;
   value: string | number;
   iconName: IconName;
+  onPress?: () => void;
 }
 
 interface SummaryMetricsProps {
@@ -30,7 +31,9 @@ export function SummaryMetrics({ metrics }: SummaryMetricsProps) {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}>
         {metrics.map((metric, index) => (
-          <MetricCard key={`metric-${index}`} label={metric.label} value={metric.value} iconName={metric.iconName} />
+          <Pressable key={`metric-${index}`} onPress={metric.onPress} disabled={!metric.onPress}>
+            <MetricCard label={metric.label} value={metric.value} iconName={metric.iconName} />
+          </Pressable>
         ))}
       </ScrollView>
     </View>

@@ -37,6 +37,16 @@ export interface HomePayment {
   dueDate?: string;
 }
 
+export interface HomeUserPayment {
+  id: string;
+  amount: number;
+  statusLabel: 'Activo' | 'Próximo a vencer' | 'Vencido';
+  daysRemaining: number;
+  paymentDate?: string;
+  periodStart?: string;
+  periodEnd?: string;
+}
+
 export interface HomeAlerts {
   paymentPending: boolean;
   attendancePending: boolean;

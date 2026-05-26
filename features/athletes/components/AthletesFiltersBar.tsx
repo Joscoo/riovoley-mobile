@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { ThemedText } from '@/shared/components';
 import { colors, spacing } from '@/shared/theme';
@@ -20,11 +20,6 @@ const SORT_OPTIONS: Array<{ value: AthletesFilters['sortBy']; label: string }> =
 
 export function AthletesFiltersBar({ filters, categories, onChange }: AthletesFiltersProps) {
   const [openFilter, setOpenFilter] = useState<'status' | 'category' | 'sort' | null>(null);
-  const [searchInput, setSearchInput] = useState(filters.search);
-
-  useEffect(() => {
-    setSearchInput(filters.search);
-  }, [filters.search]);
 
   const toggle = (key: 'status' | 'category' | 'sort') => {
     setOpenFilter((prev) => (prev === key ? null : key));
@@ -37,23 +32,15 @@ export function AthletesFiltersBar({ filters, categories, onChange }: AthletesFi
   return (
     <View style={styles.container}>
       <TextInput
-        value={searchInput}
-        onChangeText={setSearchInput}
+        value={filters.search}
+        onChangeText={(search) => onChange({ ...filters, search })}
         placeholder="Buscar por nombre, email o categoria"
         placeholderTextColor={colors.riovoley.mutedText}
         style={styles.input}
       />
 
       <View style={styles.searchActions}>
-        <Pressable style={styles.searchBtn} onPress={() => onChange({ ...filters, search: searchInput.trim() })}>
-          <ThemedText style={styles.searchBtnText}>Buscar</ThemedText>
-        </Pressable>
-        <Pressable
-          style={styles.clearBtn}
-          onPress={() => {
-            setSearchInput('');
-            onChange({ ...filters, search: '' });
-          }}>
+        <Pressable style={styles.clearBtn} onPress={() => onChange({ ...filters, search: '' })}>
           <ThemedText style={styles.clearBtnText}>Limpiar</ThemedText>
         </Pressable>
       </View>
@@ -136,16 +123,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
   searchActions: { flexDirection: 'row', gap: spacing[2] },
-  searchBtn: {
-    flex: 1,
-    backgroundColor: colors.riovoley.gold,
-    borderRadius: 10,
-    alignItems: 'center',
-    paddingVertical: spacing[2],
-  },
-  searchBtnText: { color: colors.riovoley.dark, fontWeight: '800' },
   clearBtn: {
-    flex: 1,
+    width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(245,179,58,0.35)',
     borderRadius: 10,

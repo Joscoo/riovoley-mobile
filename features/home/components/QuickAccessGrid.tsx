@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View, type ComponentProps } from 'react-native';
 import { ThemedText, AppCard } from '@/shared/components';
 import { spacing, colors, fontWeights } from '@/shared/theme';
@@ -15,9 +15,10 @@ export interface QuickAccessItem {
 interface QuickAccessGridProps {
   items: QuickAccessItem[];
   columns?: number;
+  title?: string;
 }
 
-export function QuickAccessGrid({ items, columns = 3 }: QuickAccessGridProps) {
+export function QuickAccessGrid({ items, columns = 3, title = 'Acceso rápido' }: QuickAccessGridProps) {
   if (items.length === 0) return null;
 
   const rows: QuickAccessItem[][] = [];
@@ -28,7 +29,7 @@ export function QuickAccessGrid({ items, columns = 3 }: QuickAccessGridProps) {
   return (
     <View style={styles.container}>
       <ThemedText type="subtitle" style={styles.title}>
-        Acceso Rápido
+        {title}
       </ThemedText>
       {rows.map((row, rowIndex) => (
         <View key={`row-${rowIndex}`} style={styles.row}>
