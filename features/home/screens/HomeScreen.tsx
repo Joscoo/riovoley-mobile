@@ -33,7 +33,7 @@ export default function HomeScreen() {
 
   const { profile } = useUserProfile(userId);
   const { announcements, loading: announcementsLoading } = useAnnouncements(role, 3);
-  const { training, loading: trainingLoading } = useNextTraining(userId);
+  const { training, loading: trainingLoading } = useNextTraining(userId, role);
   const { attendance } = useAttendance(userId);
   const { paymentStatus, loading: paymentLoading } = usePaymentStatus(userId);
   const isAthleteView = role === 'estudiante' || role === 'usuario';
@@ -65,6 +65,7 @@ export default function HomeScreen() {
   const quickAccessItems: QuickAccessItem[] = isAdmin
     ? [
         { id: 'attendance', label: 'Asistencias', iconName: 'checkmark-done-outline', onPress: () => router.push('/(tabs)/attendance') },
+        { id: 'attendance-reports', label: 'Reportes de asistencia', iconName: 'document-text-outline', onPress: () => router.push('/(tabs)/attendance-reports') },
         { id: 'announcements', label: 'Anuncios', iconName: 'megaphone-outline', onPress: () => router.push('/(tabs)/announcements') },
         { id: 'payments', label: 'Pagos', iconName: 'card-outline', onPress: () => router.push('/(tabs)/payments') },
       ]
@@ -100,7 +101,7 @@ export default function HomeScreen() {
           value: `${attendance?.percentage ?? 0}%`,
           iconName: 'checkmark-circle-outline' as const,
         },
-        { label: 'Próximo', value: training ? training.day_of_week.slice(0, 3) : 'N/A', iconName: 'calendar-outline' as const },
+        { label: 'Hoy', value: training.length > 0 ? `${training.length}` : 'N/A', iconName: 'calendar-outline' as const },
         {
           label: 'Pago',
           value: paymentLoading ? '...' : paymentStatus?.pending ? 'Pendiente' : 'Al día',
@@ -150,8 +151,8 @@ export default function HomeScreen() {
       <ProfileHeader name={profile?.full_name ?? null} role={profile?.role ?? null} email={sessionEmail} />
 
       {!isAdmin ? <SummaryMetrics metrics={summaryMetrics} /> : null}
-      <NextTrainingCard training={training} loading={trainingLoading} />
       <QuickAccessGrid items={quickAccessItems} columns={3} title={isAdmin ? 'Acciones rápidas' : 'Acceso rápido'} />
+      <NextTrainingCard training={training} loading={trainingLoading} />
       <AnnouncementsSection
         announcements={announcements.map((a) => ({
           id: a.id,

@@ -1,11 +1,18 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { attendanceService } from '../services/attendanceService';
-import type { AttendanceStudentItem, AttendanceTrainingDateOption } from '../types/attendance.types';
+import type {
+  AttendancePaymentMethod,
+  AttendanceStudentItem,
+  AttendanceTrainingDateOption,
+  PersistedAttendanceReport,
+} from '../types/attendance.types';
 
 export function useAttendanceRegister() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [dateOptions, setDateOptions] = useState<AttendanceTrainingDateOption[]>([]);
   const [students, setStudents] = useState<AttendanceStudentItem[]>([]);
+  const [historyDays, setHistoryDays] = useState<Array<{ date: string; count: number }>>([]);
+  const [persistedReports, setPersistedReports] = useState<PersistedAttendanceReport[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -15,14 +22,32 @@ export function useAttendanceRegister() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, options] = await Promise.all([
+      const [studentsRes, optionsRes, historyRes, reportsRes] = await Promise.allSettled([
         attendanceService.fetchStudentsForDate(date),
         attendanceService.fetchTrainingDateOptions(),
+        attendanceService.fetchAttendanceHistoryDays(),
+        attendanceService.fetchPersistedReports(),
       ]);
-      setStudents(data);
-      setDateOptions(options);
-      if (options.length > 0 && !options.some((opt) => opt.date === date)) {
-        setDate(options[0].date);
+
+      if (studentsRes.status === 'fulfilled') setStudents(studentsRes.value);
+      if (optionsRes.status === 'fulfilled') setDateOptions(optionsRes.value);
+      if (historyRes.status === 'fulfilled') setHistoryDays(historyRes.value);
+      if (reportsRes.status === 'fulfilled') setPersistedReports(reportsRes.value);
+
+      if (studentsRes.status === 'rejected') {
+        throw studentsRes.reason;
+      }
+
+      if (historyRes.status === 'rejected') {
+        setMessage(historyRes.reason instanceof Error ? historyRes.reason.message : 'No se pudo cargar historial.');
+      }
+
+      if (reportsRes.status === 'rejected') {
+        setMessage(reportsRes.reason instanceof Error ? reportsRes.reason.message : 'No se pudo cargar reportes persistidos.');
+      }
+
+      if (optionsRes.status === 'fulfilled' && optionsRes.value.length > 0 && !optionsRes.value.some((opt) => opt.date === date)) {
+        setDate(optionsRes.value[0].date);
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'No se pudo cargar asistencia.');
@@ -32,7 +57,7 @@ export function useAttendanceRegister() {
   }, [date]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const categories = useMemo(() => {
@@ -67,7 +92,7 @@ export function useAttendanceRegister() {
       if (student.present) {
         await attendanceService.markAbsent(student.id, date);
       } else {
-        await attendanceService.markPresent(student.id, date);
+        await attendanceService.markPresent(student.id, date, student.payment_method);
       }
       await load();
     } catch (error) {
@@ -77,11 +102,27 @@ export function useAttendanceRegister() {
     }
   }, [date, load]);
 
+  const changePaymentMethod = useCallback(async (student: AttendanceStudentItem, method: AttendancePaymentMethod) => {
+    setStudents((prev) => prev.map((item) => (item.id === student.id ? { ...item, payment_method: method } : item)));
+
+    if (!student.present) return;
+
+    setSubmitting(true);
+    try {
+      await attendanceService.updatePaymentMethod(student.id, date, method);
+      setMessage(null);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'No se pudo actualizar método de pago.');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [date]);
+
   const markAllPresent = useCallback(async () => {
     setSubmitting(true);
     setMessage(null);
     try {
-      await attendanceService.setAllPresent(filtered.map((s) => s.id), date);
+      await attendanceService.setAllPresent(filtered.map((s) => ({ id: s.id, payment_method: s.payment_method })), date);
       await load();
       setMessage('Todos marcados como presentes.');
     } catch (error) {
@@ -105,6 +146,50 @@ export function useAttendanceRegister() {
     }
   }, [date, load]);
 
+  const exportDayReport = useCallback(async (targetDate: string) => {
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const payload = await attendanceService.buildReportByDate(targetDate);
+      await attendanceService.downloadReport(payload, `reporte-asistencia-${targetDate}.csv`);
+      const report = await attendanceService.persistReport(payload);
+      setPersistedReports((prev) => [report, ...prev.filter((item) => item.id !== report.id)]);
+      setMessage(`Reporte exportado y persistido: ${targetDate}`);
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'No se pudo exportar el reporte.');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [load]);
+
+  const downloadPersistedReport = useCallback(async (report: PersistedAttendanceReport) => {
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await attendanceService.downloadReport(report.payload, report.file_name);
+      setMessage(`Reporte descargado: ${report.report_date}`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'No se pudo descargar el reporte.');
+    } finally {
+      setSubmitting(false);
+    }
+  }, []);
+
+  const deletePersistedReport = useCallback(async (reportId: string) => {
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await attendanceService.deletePersistedReport(reportId);
+      setPersistedReports((prev) => prev.filter((item) => item.id !== reportId));
+      setMessage('Reporte eliminado.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'No se pudo eliminar el reporte.');
+    } finally {
+      setSubmitting(false);
+    }
+  }, []);
+
   return {
     date,
     setDate,
@@ -119,9 +204,15 @@ export function useAttendanceRegister() {
     submitting,
     message,
     stats,
+    historyDays,
+    persistedReports,
     toggleOne,
+    changePaymentMethod,
     markAllPresent,
     clearDay,
+    exportDayReport,
+    downloadPersistedReport,
+    deletePersistedReport,
     refresh: load,
   };
 }

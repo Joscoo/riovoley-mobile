@@ -96,6 +96,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen name="attendance" options={{ href: null }} />
+      <Tabs.Screen name="attendance-reports" options={{ href: null }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );

@@ -23,7 +23,7 @@ export interface HomeTraining {
   day_of_week: string;
   start_time: string;
   end_time: string;
-  location: string;
+  location?: string;
 }
 
 export interface HomeAttendance {

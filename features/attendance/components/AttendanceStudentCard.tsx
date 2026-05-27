@@ -1,15 +1,17 @@
 ﻿import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/shared/components';
 import { colors, spacing } from '@/shared/theme';
-import type { AttendanceStudentItem } from '../types/attendance.types';
+import type { AttendancePaymentMethod, AttendanceStudentItem } from '../types/attendance.types';
+import { attendanceService } from '../services/attendanceService';
 
 interface AttendanceStudentCardProps {
   item: AttendanceStudentItem;
   disabled?: boolean;
   onToggle: (item: AttendanceStudentItem) => void;
+  onPaymentMethodChange: (item: AttendanceStudentItem, method: AttendancePaymentMethod) => void;
 }
 
-export function AttendanceStudentCard({ item, disabled = false, onToggle }: AttendanceStudentCardProps) {
+export function AttendanceStudentCard({ item, disabled = false, onToggle, onPaymentMethodChange }: AttendanceStudentCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
@@ -19,6 +21,19 @@ export function AttendanceStudentCard({ item, disabled = false, onToggle }: Atte
         </View>
       </View>
       <ThemedText style={styles.meta}>{item.categoria?.replaceAll('_', ' ') || 'Sin categoria'}</ThemedText>
+
+      <View style={styles.methodRow}>
+        {attendanceService.paymentMethodOptions.map((option) => (
+          <Pressable
+            key={option.value}
+            style={[styles.methodChip, item.payment_method === option.value && styles.methodChipActive]}
+            onPress={() => onPaymentMethodChange(item, option.value)}
+            disabled={disabled}>
+            <ThemedText style={styles.methodChipText}>{option.label}</ThemedText>
+          </Pressable>
+        ))}
+      </View>
+
       <Pressable style={styles.toggleBtn} onPress={() => onToggle(item)} disabled={disabled}>
         <ThemedText style={styles.toggleText}>{item.present ? 'Marcar ausente' : 'Marcar presente'}</ThemedText>
       </Pressable>
@@ -42,6 +57,16 @@ const styles = StyleSheet.create({
   absent: { backgroundColor: 'rgba(239,68,68,0.2)' },
   badgeText: { fontSize: 11, fontWeight: '700' },
   meta: { marginTop: spacing[1], fontSize: 12, color: colors.riovoley.mutedText },
+  methodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[1], marginTop: spacing[2] },
+  methodChip: {
+    borderWidth: 1,
+    borderColor: 'rgba(245,179,58,0.35)',
+    borderRadius: 999,
+    paddingHorizontal: spacing[2],
+    paddingVertical: 4,
+  },
+  methodChipActive: { backgroundColor: 'rgba(245,179,58,0.22)' },
+  methodChipText: { fontSize: 11, fontWeight: '700' },
   toggleBtn: {
     marginTop: spacing[2],
     borderWidth: 1,

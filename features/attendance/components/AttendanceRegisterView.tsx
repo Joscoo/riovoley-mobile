@@ -1,10 +1,12 @@
-﻿import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+﻿import { useRouter } from 'expo-router';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { LoadingState, ThemedText } from '@/shared/components';
 import { colors, spacing } from '@/shared/theme';
 import { useAttendanceRegister } from '../hooks/useAttendanceRegister';
 import { AttendanceStudentCard } from './AttendanceStudentCard';
 
 export function AttendanceRegisterView() {
+  const router = useRouter();
   const {
     date,
     setDate,
@@ -20,9 +22,11 @@ export function AttendanceRegisterView() {
     message,
     stats,
     toggleOne,
+    changePaymentMethod,
     markAllPresent,
     clearDay,
   } = useAttendanceRegister();
+
   if (loading) return <LoadingState message="Cargando control de asistencias..." />;
 
   return (
@@ -60,6 +64,10 @@ export function AttendanceRegisterView() {
         </Pressable>
       </View>
 
+      <Pressable style={styles.historyBtn} onPress={() => router.push('/(tabs)/attendance-reports')}>
+        <ThemedText style={styles.historyBtnText}>Ver historial y reportes</ThemedText>
+      </Pressable>
+
       <View style={styles.chipsRow}>
         <Pressable style={[styles.chip, category === 'all' && styles.chipActive]} onPress={() => setCategory('all')}>
           <ThemedText style={styles.chipText}>Todas</ThemedText>
@@ -83,7 +91,14 @@ export function AttendanceRegisterView() {
       <FlatList
         data={students}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <AttendanceStudentCard item={item} disabled={submitting} onToggle={toggleOne} />}
+        renderItem={({ item }) => (
+          <AttendanceStudentCard
+            item={item}
+            disabled={submitting}
+            onToggle={toggleOne}
+            onPaymentMethodChange={changePaymentMethod}
+          />
+        )}
         contentContainerStyle={styles.listContent}
       />
     </View>
@@ -128,6 +143,16 @@ const styles = StyleSheet.create({
   actionPrimaryText: { color: '#ecfdf5', fontWeight: '800' },
   actionSecondary: { flex: 1, backgroundColor: 'rgba(127,29,29,0.4)', borderRadius: 10, paddingVertical: spacing[2], alignItems: 'center' },
   actionSecondaryText: { color: '#fee2e2', fontWeight: '800' },
+  historyBtn: {
+    borderWidth: 1,
+    borderColor: 'rgba(245,179,58,0.35)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingVertical: spacing[2],
+    alignItems: 'center',
+    marginBottom: spacing[2],
+  },
+  historyBtnText: { fontWeight: '800' },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2], marginBottom: spacing[2] },
   chip: { borderWidth: 1, borderColor: 'rgba(245,179,58,0.35)', borderRadius: 999, paddingHorizontal: spacing[2], paddingVertical: spacing[1] },
   chipActive: { backgroundColor: 'rgba(245,179,58,0.22)' },

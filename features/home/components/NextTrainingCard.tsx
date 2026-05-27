@@ -1,41 +1,48 @@
-import { StyleSheet, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+﻿import { StyleSheet, View } from 'react-native';
 import { ThemedText, AppCard } from '@/shared/components';
 import { colors, spacing, fontWeights } from '@/shared/theme';
 import type { HomeTraining } from '../types/home.types';
 
 interface NextTrainingCardProps {
-  training: HomeTraining | null;
+  training: HomeTraining[];
   loading?: boolean;
 }
 
-function DetailRow({ icon, label, value }: { icon: keyof typeof MaterialIcons.glyphMap; label: string; value: string }) {
-  return (
-    <View style={styles.row}>
-      <View style={styles.rowLabel}>
-        <MaterialIcons name={icon} size={18} color={colors.riovoley.gold} />
-        <ThemedText style={styles.label}>{label}</ThemedText>
-      </View>
-      <ThemedText style={styles.value}>{value}</ThemedText>
-    </View>
-  );
+function formatCategoryLabel(value: string) {
+  return value
+    .replaceAll('_', ' ')
+    .split(' ')
+    .map((word) => (word ? `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}` : ''))
+    .join(' ');
+}
+
+function formatTime(value: string) {
+  const raw = String(value || '').trim();
+  if (!raw) return '--:--';
+  return raw.slice(0, 5);
 }
 
 export function NextTrainingCard({ training, loading }: NextTrainingCardProps) {
   return (
     <AppCard style={[styles.container, styles.cardElevated]}>
-      <ThemedText type="subtitle">Próximo Entrenamiento</ThemedText>
+      <ThemedText type="subtitle">Horarios de hoy</ThemedText>
 
       {loading ? <ThemedText style={styles.loadingText}>Cargando...</ThemedText> : null}
 
-      {!loading && !training ? <ThemedText style={styles.noData}>No hay entrenamientos programados</ThemedText> : null}
+      {!loading && training.length === 0 ? (
+        <ThemedText style={styles.noData}>No hay entrenamientos programados para hoy</ThemedText>
+      ) : null}
 
-      {!loading && training ? (
+      {!loading && training.length > 0 ? (
         <View style={styles.content}>
-          <DetailRow icon="calendar-month" label="Día" value={training.day_of_week} />
-          <DetailRow icon="schedule" label="Hora" value={`${training.start_time} - ${training.end_time}`} />
-          <DetailRow icon="sports-volleyball" label="Categoría" value={training.category} />
-          <DetailRow icon="place" label="Lugar" value={training.location} />
+          {training.map((item) => (
+            <View key={item.id} style={styles.itemRow}>
+              <ThemedText style={styles.categoryText}>{formatCategoryLabel(item.category)}</ThemedText>
+              <View style={styles.timeBadge}>
+                <ThemedText style={styles.timeText}>{`${formatTime(item.start_time)} - ${formatTime(item.end_time)}`}</ThemedText>
+              </View>
+            </View>
+          ))}
         </View>
       ) : null}
     </AppCard>
@@ -52,27 +59,35 @@ const styles = StyleSheet.create({
   },
   content: {
     marginTop: spacing[3],
-    gap: spacing[2],
+    gap: spacing[1],
   },
-  row: {
+  itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing[1],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[2],
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
-  rowLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  label: {
-    fontWeight: fontWeights.semibold,
-    fontSize: 14,
-  },
-  value: {
+  categoryText: {
     flex: 1,
-    textAlign: 'right',
-    marginLeft: spacing[2],
+    marginRight: spacing[2],
+    fontWeight: fontWeights.semibold,
+  },
+  timeBadge: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: 8,
+    backgroundColor: 'rgba(245, 179, 58, 0.13)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 179, 58, 0.35)',
+  },
+  timeText: {
+    color: colors.riovoley.gold,
+    fontWeight: fontWeights.bold,
   },
   noData: {
     marginTop: spacing[2],

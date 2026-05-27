@@ -83,10 +83,11 @@ export function usePaymentsManager() {
       return start <= monthEnd && end >= monthStart;
     });
     const total = activeMonthPayments.length;
-    const active = activeMonthPayments.filter((p) => p.status === 'active').length;
+    const activeMonthActivePayments = activeMonthPayments.filter((p) => p.status === 'active');
+    const active = activeMonthActivePayments.length;
     const overdue = activeMonthPayments.filter((p) => p.status === 'overdue').length;
     const expiring = activeMonthPayments.filter((p) => p.status === 'expiring').length;
-    const totalAmount = activeMonthPayments.reduce((acc, item) => acc + (item.amount || 0), 0);
+    const totalAmount = activeMonthActivePayments.reduce((acc, item) => acc + (item.amount || 0), 0);
     return { total, active, overdue, expiring, totalAmount };
   }, [payments]);
 

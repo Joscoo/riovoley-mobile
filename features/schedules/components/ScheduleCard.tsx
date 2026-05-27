@@ -29,6 +29,12 @@ export function ScheduleCard({
   onConfirmDelete,
   onRemind,
 }: ScheduleCardProps) {
+  const capitalizeFirst = (value: string) => (value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : value);
+  const formatTime = (value?: string | null) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '--:--';
+    return raw.slice(0, 5);
+  };
   const category = (item.category || '').toLowerCase();
   const categoryLabel =
     category === 'open_gym'
@@ -41,10 +47,10 @@ export function ScheduleCard({
         <View style={styles.badge}>
           <ThemedText style={styles.badgeText}>{categoryLabel}</ThemedText>
         </View>
-        <ThemedText style={styles.time}>{item.start_time} - {item.end_time}</ThemedText>
+        <ThemedText style={styles.time}>{formatTime(item.start_time)} - {formatTime(item.end_time)}</ThemedText>
       </View>
       <View style={styles.rowBetween}>
-        <ThemedText type="defaultSemiBold">{item.day_of_week}</ThemedText>
+        <ThemedText type="defaultSemiBold">{capitalizeFirst(item.day_of_week || '')}</ThemedText>
         {item.location ? <ThemedText style={styles.location}>{item.location}</ThemedText> : null}
       </View>
       {item.description ? <ThemedText style={styles.description}>{item.description}</ThemedText> : null}

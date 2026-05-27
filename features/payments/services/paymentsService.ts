@@ -47,6 +47,7 @@ const addDays = (dateIso: string, days: number) => {
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 };
+const toDateOnly = (value: string | null | undefined) => (value ? String(value).slice(0, 10) : null);
 
 const isMissingColumnError = (error: any) => String(error?.message || '').toLowerCase().includes('does not exist');
 
@@ -145,12 +146,23 @@ const toItem = (
 const detectOwnerMode = async (): Promise<OwnerMode> => {
   if (ownerModeCache) return ownerModeCache;
 
+  const userWithData = await supabase.from('payments').select('id').not('user_id', 'is', null).limit(1);
+  if (!userWithData.error && (userWithData.data || []).length > 0) {
+    ownerModeCache = 'user';
+    return ownerModeCache;
+  }
+
+  const studentWithData = await supabase.from('payments').select('id').not('student_id', 'is', null).limit(1);
+  if (!studentWithData.error && (studentWithData.data || []).length > 0) {
+    ownerModeCache = 'student';
+    return ownerModeCache;
+  }
+
   const userProbe = await supabase.from('payments').select('id,user_id').limit(1);
   if (!userProbe.error) {
     ownerModeCache = 'user';
     return ownerModeCache;
   }
-
   const studentProbe = await supabase.from('payments').select('id,student_id').limit(1);
   if (!studentProbe.error) {
     ownerModeCache = 'student';
@@ -318,8 +330,6 @@ export const paymentsService = {
 
     const membershipType = input.membershipType;
     const amount = amountByMembership(membershipType);
-    const periodStart = input.paymentDate;
-    const periodEnd = addDays(input.paymentDate, 30);
 
     const payload: any = {};
     const amountColumn = await resolveColumn(['amount', 'monto']);
@@ -334,10 +344,6 @@ export const paymentsService = {
 
     if (amountColumn) payload[amountColumn] = amount;
     if (statusColumn) payload[statusColumn] = 'pending';
-    if (paymentDateColumn) payload[paymentDateColumn] = input.paymentDate;
-    if (dueDateColumn) payload[dueDateColumn] = periodEnd;
-    if (periodStartColumn) payload[periodStartColumn] = periodStart;
-    if (periodEndColumn) payload[periodEndColumn] = periodEnd;
     if (membershipTypeColumn) payload[membershipTypeColumn] = membershipType;
     if (membershipTypeIdColumn) {
       const membershipTypeId = await resolveMembershipTypeId(membershipType);
@@ -349,6 +355,47 @@ export const paymentsService = {
 
     if (ownerMode === 'user') payload.user_id = input.userId;
     if (ownerMode === 'student') payload.student_id = input.studentId;
+
+    const ownerColumn = ownerMode === 'user' ? 'user_id' : 'student_id';
+    const ownerValue = ownerMode === 'user' ? input.userId : input.studentId;
+    let periodStart = input.paymentDate;
+    let periodEnd = addDays(input.paymentDate, 30);
+
+    const periodProbeColumns = [
+      'id',
+      ...(periodStartColumn ? [periodStartColumn] : []),
+      ...(periodEndColumn ? [periodEndColumn] : []),
+      ...(dueDateColumn ? [dueDateColumn] : []),
+      ...(paymentDateColumn ? [paymentDateColumn] : []),
+    ];
+
+    const latest = await supabase
+      .from('payments')
+      .select([...new Set(periodProbeColumns)].join(','))
+      .eq(ownerColumn, ownerValue)
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!latest.error && latest.data) {
+      const row: any = latest.data;
+      const latestEnd =
+        toDateOnly(periodEndColumn ? row[periodEndColumn] : null)
+        || toDateOnly(dueDateColumn ? row[dueDateColumn] : null);
+
+      if (latestEnd) {
+        const paymentDate = toDateOnly(input.paymentDate) || input.paymentDate;
+        if (latestEnd >= paymentDate) {
+          periodStart = addDays(latestEnd, 1);
+          periodEnd = addDays(periodStart, 30);
+        }
+      }
+    }
+
+    if (paymentDateColumn) payload[paymentDateColumn] = input.paymentDate;
+    if (dueDateColumn) payload[dueDateColumn] = periodEnd;
+    if (periodStartColumn) payload[periodStartColumn] = periodStart;
+    if (periodEndColumn) payload[periodEndColumn] = periodEnd;
 
     const { error } = await supabase.from('payments').insert(payload);
 

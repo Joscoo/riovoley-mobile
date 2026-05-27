@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { EmptyState, ErrorState, LoadingState, SectionHeader, ThemedText } from '@/shared/components';
 import { useSessionRole } from '@/shared/auth/useSessionRole';
 import { canManagePayments, canViewPayments } from '@/shared/permissions/rolePermissions';
@@ -72,23 +73,69 @@ function AthleteSelector({
   );
 }
 
-function PaymentCard({ item }: { item: PaymentItem }) {
+function PaymentCard({
+  item,
+  canManage,
+  onEdit,
+  onRequestDelete,
+  onCancelDelete,
+  onConfirmDelete,
+  confirmDelete,
+  deleting,
+}: {
+  item: PaymentItem;
+  canManage?: boolean;
+  onEdit?: (item: PaymentItem) => void;
+  onRequestDelete?: (item: PaymentItem) => void;
+  onCancelDelete?: () => void;
+  onConfirmDelete?: (item: PaymentItem) => void;
+  confirmDelete?: boolean;
+  deleting?: boolean;
+}) {
   const statusColor = item.status === 'active' ? '#0fa879' : item.status === 'overdue' ? '#b04c58' : '#c0911b';
   const statusLabel = item.status === 'active' ? 'Activo' : item.status === 'expiring' ? 'Próximo a vencer' : 'Vencido';
   const daysLabel = item.daysRemaining >= 0 ? `${item.daysRemaining} día(s) restantes` : `${Math.abs(item.daysRemaining)} día(s) vencido`;
 
   return (
     <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <ThemedText style={styles.cardTitle}>{item.athleteName}</ThemedText>
-        <View style={[styles.badge, { backgroundColor: statusColor }]}>
-          <ThemedText style={styles.badgeText}>{statusLabel}</ThemedText>
+      <View style={styles.cardRow}>
+        <View style={styles.leftCol}>
+          <ThemedText style={styles.cardTitle} numberOfLines={2}>{item.athleteName}</ThemedText>
+          <View style={styles.cardBody}>
+            <ThemedText style={styles.cardInfo}>Periodo: {formatDate(item.periodStart)} - {formatDate(item.periodEnd)}</ThemedText>
+            <ThemedText style={styles.cardInfo}>Membresía: {daysLabel}</ThemedText>
+            <ThemedText style={styles.cardInfo}>Fecha de pago: {formatDate(item.paymentDate)}</ThemedText>
+          </View>
+        </View>
+        <View style={styles.headerRight}>
+          <View style={[styles.badge, { backgroundColor: statusColor }]}>
+            <ThemedText style={styles.badgeText}>{statusLabel}</ThemedText>
+          </View>
+          {canManage ? (
+            <View style={styles.headerActions}>
+              <Pressable style={styles.cardActionBtn} onPress={() => onEdit?.(item)}>
+                <Ionicons name="create-outline" size={14} color={colors.riovoley.gold} />
+              </Pressable>
+              {confirmDelete ? (
+                <>
+                  <Pressable style={styles.cardActionBtn} onPress={onCancelDelete}>
+                    <Ionicons name="close-outline" size={14} color={colors.riovoley.pearl} />
+                  </Pressable>
+                  <Pressable style={styles.cardActionBtnDelete} onPress={() => onConfirmDelete?.(item)} disabled={deleting}>
+                    <Ionicons name="checkmark-outline" size={14} color="#ff9a9a" />
+                  </Pressable>
+                </>
+              ) : (
+                <Pressable style={styles.cardActionBtnDelete} onPress={() => onRequestDelete?.(item)}>
+                  <Ionicons name="trash-outline" size={14} color="#ff9a9a" />
+                </Pressable>
+              )}
+            </View>
+          ) : null}
+          {canManage ? <ThemedText style={styles.cardAmountRight}>{formatMoney(item.amount)}</ThemedText> : null}
         </View>
       </View>
-      <ThemedText style={styles.cardInfo}>Periodo: {formatDate(item.periodStart)} - {formatDate(item.periodEnd)}</ThemedText>
-      <ThemedText style={styles.cardInfo}>Membresía: {daysLabel}</ThemedText>
-      <ThemedText style={styles.cardInfo}>Fecha de pago: {formatDate(item.paymentDate)}</ThemedText>
-      <ThemedText style={styles.cardAmount}>{formatMoney(item.amount)}</ThemedText>
+      {!canManage ? <ThemedText style={styles.cardAmount}>{formatMoney(item.amount)}</ThemedText> : null}
     </View>
   );
 }
@@ -96,6 +143,8 @@ function PaymentCard({ item }: { item: PaymentItem }) {
 export default function PaymentsScreen() {
   const { role, loading: roleLoading, userId } = useSessionRole();
   const [formOpen, setFormOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const {
     payments,
@@ -112,7 +161,9 @@ export default function PaymentsScreen() {
     metrics,
     loadData,
     startCreate,
+    startEdit,
     submit,
+    remove,
   } = usePaymentsManager();
 
   const canManage = canManagePayments(role || '');
@@ -272,7 +323,25 @@ export default function PaymentsScreen() {
       {message ? <ThemedText style={styles.message}>{message}</ThemedText> : null}
 
       {(isAthleteView ? previousPayments : visiblePayments).map((item) => (
-        <PaymentCard key={item.id} item={item} />
+        <PaymentCard
+          key={item.id}
+          item={item}
+          canManage={canManage}
+          confirmDelete={pendingDeleteId === item.id}
+          deleting={deletingId === item.id}
+          onEdit={(payment) => {
+            startEdit(payment);
+            setFormOpen(true);
+          }}
+          onRequestDelete={(payment) => setPendingDeleteId(payment.id)}
+          onCancelDelete={() => setPendingDeleteId(null)}
+          onConfirmDelete={async (payment) => {
+            setDeletingId(payment.id);
+            await remove(payment.id);
+            setDeletingId(null);
+            setPendingDeleteId(null);
+          }}
+        />
       ))}
 
       {(isAthleteView ? previousPayments.length === 0 : visiblePayments.length === 0) ? (
@@ -364,11 +433,37 @@ const styles = StyleSheet.create({
     marginBottom: spacing[2],
     gap: spacing[1],
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontWeight: '800', fontSize: 18 },
+  cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing[2] },
+  leftCol: { flex: 1, minWidth: 0 },
+  cardTitle: { fontWeight: '800', fontSize: 18, marginTop: 0, marginBottom: 4 },
+  cardBody: { marginTop: 0, gap: 2 },
   cardMuted: { fontSize: 12, color: colors.riovoley.mutedText },
-  cardInfo: { fontSize: 13 },
+  cardInfo: { fontSize: 13, lineHeight: 18 },
   cardAmount: { marginTop: spacing[1], fontWeight: '800', fontSize: 20, color: colors.riovoley.gold },
+  headerRight: { alignItems: 'flex-end', gap: 6, width: 96 },
+  headerActions: { flexDirection: 'row', gap: 6 },
+  cardAmountRight: { marginTop: 2, fontWeight: '800', fontSize: 18, color: colors.riovoley.gold },
+  cardActionBtn: {
+    borderWidth: 1,
+    borderColor: 'rgba(245,179,58,0.35)',
+    borderRadius: 8,
+    height: 28,
+    width: 28,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardActionBtnDelete: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,154,154,0.45)',
+    borderRadius: 8,
+    height: 28,
+    width: 28,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardActionText: { fontSize: 12, fontWeight: '700', color: colors.riovoley.gold },
   badge: { borderRadius: 999, paddingHorizontal: spacing[2], paddingVertical: 4 },
   badgeText: { fontSize: 11, fontWeight: '800' },
   message: { fontSize: 12, color: '#8de0a6' },

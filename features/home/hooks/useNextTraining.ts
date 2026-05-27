@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react';
 import { homeService } from '../services/homeService';
 import { HomeTraining } from '../types/home.types';
 
-export function useNextTraining(userId: string | undefined) {
-  const [training, setTraining] = useState<HomeTraining | null>(null);
+export function useNextTraining(userId: string | undefined, role?: string | null) {
+  const [training, setTraining] = useState<HomeTraining[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +20,7 @@ export function useNextTraining(userId: string | undefined) {
     const fetchTraining = async () => {
       setLoading(true);
       try {
-        const data = await homeService.fetchNextTraining(userId);
+        const data = await homeService.fetchNextTraining(userId, role || undefined);
         setTraining(data);
         setError(null);
       } catch (err) {
@@ -31,7 +31,7 @@ export function useNextTraining(userId: string | undefined) {
     };
 
     fetchTraining();
-  }, [userId]);
+  }, [userId, role]);
 
   return { training, loading, error };
 }

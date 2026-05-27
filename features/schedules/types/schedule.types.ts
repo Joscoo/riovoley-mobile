@@ -24,3 +24,14 @@ export interface ScheduleFormState {
   end_time: string;
   description: string;
 }
+
+export interface ScheduleCategory {
+  id: string;
+  code: string;
+  label: string;
+  defaultDescription?: string;
+  appliesToSchedules: boolean;
+  appliesToAthletes: boolean;
+  isActive: boolean;
+  source: 'table' | 'derived';
+}

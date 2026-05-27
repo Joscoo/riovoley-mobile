@@ -76,22 +76,60 @@ export const homeService = {
   },
 
   // Next Training/Schedule
-  async fetchNextTraining(userId: string): Promise<HomeTraining | null> {
-    // TODO: filtrar por categoría, rol o grupo del usuario cuando esté disponible.
-    // This query depends on your actual schema
-    // Assuming there's a relationship between user_profiles and schedules
-    const { data, error } = await supabase
-      .from('schedules')
-      .select('id, category, day_of_week, start_time, end_time, location')
-      .order('start_time', { ascending: true })
-      .limit(1);
+  async fetchNextTraining(userId: string, role?: string): Promise<HomeTraining[]> {
+    // TODO: filtrar por categor?a, rol o grupo del usuario cuando est? disponible.
+    const normalizeRow = (row: any): HomeTraining => ({
+      id: String(row.id),
+      category: String(row.categoria ?? row.category ?? ''),
+      day_of_week: String(row.dia_semana ?? row.day_of_week ?? ''),
+      start_time: String(row.hora_inicio ?? row.start_time ?? ''),
+      end_time: String(row.hora_fin ?? row.end_time ?? ''),
+      location: row.location ? String(row.location) : undefined,
+    });
 
-    if (error) {
-      console.error('Error fetching next training:', error);
-      return null;
+    const todayNames = (() => {
+      const day = new Date().getDay();
+      const es = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+      const en = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const esAccented = ['domingo', 'lunes', 'martes', 'mi?rcoles', 'jueves', 'viernes', 's?bado'];
+      return new Set([es[day], en[day], esAccented[day]]);
+    })();
+
+    let schedulesData: any[] = [];
+    const publicResult = await supabase.from('schedules').select('*');
+    if (!publicResult.error) {
+      schedulesData = publicResult.data || [];
+    } else {
+      const trainingResult = await supabase.schema('training').from('schedules').select('*');
+      if (trainingResult.error) {
+        console.error('Error fetching today schedules:', trainingResult.error);
+        return [];
+      }
+      schedulesData = trainingResult.data || [];
     }
 
-    return data?.[0] ?? null;
+    const todaySchedules = schedulesData
+      .map(normalizeRow)
+      .filter((item) => todayNames.has(String(item.day_of_week || '').toLowerCase()))
+      .sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
+
+    const normalizedRole = String(role || '').toLowerCase();
+    const isAdminOrCoach = normalizedRole === 'administrador' || normalizedRole === 'admin' || normalizedRole === 'entrenador';
+    if (isAdminOrCoach) return todaySchedules;
+
+    const isAthlete = normalizedRole === 'estudiante' || normalizedRole === 'usuario' || normalizedRole === 'atleta';
+    if (!isAthlete) return todaySchedules;
+
+    const { data: student, error: studentError } = await supabase
+      .from('students')
+      .select('categoria')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (studentError || !student?.categoria) return [];
+
+    const athleteCategory = String(student.categoria || '').toLowerCase();
+    return todaySchedules.filter((item) => String(item.category || '').toLowerCase() === athleteCategory);
   },
 
   // Attendance Status

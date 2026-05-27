@@ -1,8 +1,15 @@
 ﻿import { supabase } from '@/lib/supabase';
-import type { ScheduleItem, ScheduleMutationInput } from '../types/schedule.types';
+import type { ScheduleCategory, ScheduleItem, ScheduleMutationInput } from '../types/schedule.types';
 
 type SchemaMode = 'public' | 'training';
 type KeyMode = 'spanish' | 'english';
+type CategoriesTableMode =
+  | 'training_categories_public'
+  | 'training_categories_training'
+  | 'schedule_categories_public'
+  | 'schedule_categories_training'
+  | 'categories_public'
+  | 'none';
 
 const normalizeRow = (row: any): ScheduleItem => ({
   id: row.id,
@@ -112,6 +119,60 @@ const shouldTryFallback = (error: unknown) => {
   );
 };
 
+const normalizeCategoryCode = (value?: string | null) => String(value || '').trim().toLowerCase();
+let categoriesTableModeCache: CategoriesTableMode | null = null;
+
+function normalizeCategoryRow(row: any): ScheduleCategory {
+  const code = normalizeCategoryCode(row.code ?? row.codigo ?? row.category_code);
+  return {
+    id: String(row.id ?? code),
+    code,
+    label: String(row.label ?? row.etiqueta ?? row.name ?? code),
+    defaultDescription: row.default_description ?? row.descripcion_default ?? row.description ?? undefined,
+    appliesToSchedules: Boolean(row.applies_to_schedules ?? row.for_schedules ?? row.aplica_horarios ?? true),
+    appliesToAthletes: Boolean(row.applies_to_athletes ?? row.for_students ?? row.aplica_atletas ?? true),
+    isActive: Boolean(row.is_active ?? row.activa ?? true),
+    source: 'table',
+  };
+}
+
+async function resolveCategoriesTableMode(): Promise<CategoriesTableMode> {
+  if (categoriesTableModeCache) return categoriesTableModeCache;
+
+  const publicTrainingCategories = await supabase.from('training_categories').select('code').limit(1);
+  if (!publicTrainingCategories.error) {
+    categoriesTableModeCache = 'training_categories_public';
+    return categoriesTableModeCache;
+  }
+
+  const trainingSchemaTrainingCategories = await supabase.schema('training').from('training_categories').select('code').limit(1);
+  if (!trainingSchemaTrainingCategories.error) {
+    categoriesTableModeCache = 'training_categories_training';
+    return categoriesTableModeCache;
+  }
+
+  const publicScheduleCategories = await supabase.from('schedule_categories').select('id').limit(1);
+  if (!publicScheduleCategories.error) {
+    categoriesTableModeCache = 'schedule_categories_public';
+    return categoriesTableModeCache;
+  }
+
+  const trainingScheduleCategories = await supabase.schema('training').from('schedule_categories').select('id').limit(1);
+  if (!trainingScheduleCategories.error) {
+    categoriesTableModeCache = 'schedule_categories_training';
+    return categoriesTableModeCache;
+  }
+
+  const publicCategories = await supabase.from('categories').select('id').limit(1);
+  if (!publicCategories.error) {
+    categoriesTableModeCache = 'categories_public';
+    return categoriesTableModeCache;
+  }
+
+  categoriesTableModeCache = 'none';
+  return categoriesTableModeCache;
+}
+
 export const schedulesService = {
   async fetchSchedules(): Promise<ScheduleItem[]> {
     let data: any[] | null = null;
@@ -169,5 +230,265 @@ export const schedulesService = {
       if (!shouldTryFallback(error)) throw error;
       await deleteInMode('training', scheduleId);
     }
+  },
+
+  async fetchScheduleCategories(): Promise<ScheduleCategory[]> {
+    const mode = await resolveCategoriesTableMode();
+
+    if (mode !== 'none') {
+      let rows: any[] | null = null;
+      if (mode === 'training_categories_public') {
+        const { data, error } = await supabase.from('training_categories').select('*').order('label', { ascending: true });
+        if (error) throw new Error(error.message || 'No se pudieron cargar categorías.');
+        rows = data || [];
+      } else if (mode === 'training_categories_training') {
+        const { data, error } = await supabase.schema('training').from('training_categories').select('*').order('label', { ascending: true });
+        if (error) throw new Error(error.message || 'No se pudieron cargar categorías.');
+        rows = data || [];
+      } else if (mode === 'schedule_categories_public') {
+        const { data, error } = await supabase.from('schedule_categories').select('*').order('id', { ascending: true });
+        if (error) throw new Error(error.message || 'No se pudieron cargar categorías.');
+        rows = data || [];
+      } else if (mode === 'schedule_categories_training') {
+        const { data, error } = await supabase.schema('training').from('schedule_categories').select('*').order('id', { ascending: true });
+        if (error) throw new Error(error.message || 'No se pudieron cargar categorías.');
+        rows = data || [];
+      } else {
+        const { data, error } = await supabase.from('categories').select('*').order('id', { ascending: true });
+        if (error) throw new Error(error.message || 'No se pudieron cargar categorías.');
+        rows = data || [];
+      }
+
+      return rows.map(normalizeCategoryRow).sort((a, b) => a.label.localeCompare(b.label, 'es'));
+    }
+
+    const schedules = await this.fetchSchedules();
+    const unique = new Map<string, ScheduleCategory>();
+    schedules.forEach((item) => {
+      const code = normalizeCategoryCode(item.category);
+      if (!code || unique.has(code)) return;
+      unique.set(code, {
+        id: code,
+        code,
+        label: code.replaceAll('_', ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
+        appliesToSchedules: true,
+        appliesToAthletes: true,
+        isActive: true,
+        source: 'derived',
+      });
+    });
+    return [...unique.values()].sort((a, b) => a.label.localeCompare(b.label, 'es'));
+  },
+
+  async createScheduleCategory(input: {
+    code: string;
+    label: string;
+    defaultDescription?: string;
+    appliesToSchedules: boolean;
+    appliesToAthletes: boolean;
+    isActive: boolean;
+  }) {
+    const mode = await resolveCategoriesTableMode();
+    if (mode === 'none') {
+      throw new Error('No se encontró la tabla training_categories en la base de datos.');
+    }
+
+    const code = normalizeCategoryCode(input.code);
+    const label = input.label.trim();
+    const defaultDescription = input.defaultDescription?.trim() || null;
+
+    if (mode === 'training_categories_public') {
+      const payload = {
+        code,
+        label,
+        default_description: defaultDescription,
+        for_schedules: input.appliesToSchedules,
+        for_students: input.appliesToAthletes,
+        is_active: input.isActive,
+      };
+      const { error } = await supabase.from('training_categories').insert(payload);
+      if (error) throw new Error(error.message || 'No se pudo crear la categoría.');
+      return;
+    }
+    if (mode === 'training_categories_training') {
+      const payload = {
+        code,
+        label,
+        default_description: defaultDescription,
+        for_schedules: input.appliesToSchedules,
+        for_students: input.appliesToAthletes,
+        is_active: input.isActive,
+      };
+      const { error } = await supabase.schema('training').from('training_categories').insert(payload);
+      if (error) throw new Error(error.message || 'No se pudo crear la categoría.');
+      return;
+    }
+    if (mode === 'schedule_categories_public') {
+      const payload = {
+        code,
+        label,
+        default_description: defaultDescription,
+        applies_to_schedules: input.appliesToSchedules,
+        applies_to_athletes: input.appliesToAthletes,
+        is_active: input.isActive,
+        codigo: code,
+        etiqueta: label,
+        descripcion_default: defaultDescription,
+        aplica_horarios: input.appliesToSchedules,
+        aplica_atletas: input.appliesToAthletes,
+        activa: input.isActive,
+      };
+      const { error } = await supabase.from('schedule_categories').insert(payload);
+      if (error) throw new Error(error.message || 'No se pudo crear la categoría.');
+      return;
+    }
+    if (mode === 'schedule_categories_training') {
+      const payload = {
+        code,
+        label,
+        default_description: defaultDescription,
+        applies_to_schedules: input.appliesToSchedules,
+        applies_to_athletes: input.appliesToAthletes,
+        is_active: input.isActive,
+        codigo: code,
+        etiqueta: label,
+        descripcion_default: defaultDescription,
+        aplica_horarios: input.appliesToSchedules,
+        aplica_atletas: input.appliesToAthletes,
+        activa: input.isActive,
+      };
+      const { error } = await supabase.schema('training').from('schedule_categories').insert(payload);
+      if (error) throw new Error(error.message || 'No se pudo crear la categoría.');
+      return;
+    }
+
+    const payload = {
+      code,
+      label,
+      default_description: defaultDescription,
+      applies_to_schedules: input.appliesToSchedules,
+      applies_to_athletes: input.appliesToAthletes,
+      is_active: input.isActive,
+      codigo: code,
+      etiqueta: label,
+      descripcion_default: defaultDescription,
+      aplica_horarios: input.appliesToSchedules,
+      aplica_atletas: input.appliesToAthletes,
+      activa: input.isActive,
+    };
+    const { error } = await supabase.from('categories').insert(payload);
+    if (error) throw new Error(error.message || 'No se pudo crear la categoría.');
+  },
+
+  async updateScheduleCategoryActive(categoryId: string, isActive: boolean) {
+    const mode = await resolveCategoriesTableMode();
+    if (mode === 'none') {
+      throw new Error('No se encontró la tabla training_categories en la base de datos.');
+    }
+
+    if (mode === 'training_categories_public') {
+      const { error } = await supabase
+        .from('training_categories')
+        .update({ is_active: isActive })
+        .eq('id', categoryId);
+      if (error) throw new Error(error.message || 'No se pudo actualizar la categoría.');
+      return;
+    }
+    if (mode === 'training_categories_training') {
+      const { error } = await supabase
+        .schema('training')
+        .from('training_categories')
+        .update({ is_active: isActive })
+        .eq('id', categoryId);
+      if (error) throw new Error(error.message || 'No se pudo actualizar la categoría.');
+      return;
+    }
+
+    if (mode === 'schedule_categories_public') {
+      const { error } = await supabase.from('schedule_categories').update({ is_active: isActive, activa: isActive }).eq('id', categoryId);
+      if (error) throw new Error(error.message || 'No se pudo actualizar la categoría.');
+      return;
+    }
+    if (mode === 'schedule_categories_training') {
+      const { error } = await supabase.schema('training').from('schedule_categories').update({ is_active: isActive, activa: isActive }).eq('id', categoryId);
+      if (error) throw new Error(error.message || 'No se pudo actualizar la categoría.');
+      return;
+    }
+
+    const { error } = await supabase.from('categories').update({ is_active: isActive, activa: isActive }).eq('id', categoryId);
+    if (error) throw new Error(error.message || 'No se pudo actualizar la categoría.');
+  },
+
+  async updateScheduleCategory(category: ScheduleCategory, input: {
+    code: string;
+    label: string;
+    defaultDescription?: string;
+    appliesToSchedules: boolean;
+    appliesToAthletes: boolean;
+    isActive: boolean;
+  }) {
+    const mode = await resolveCategoriesTableMode();
+    if (mode === 'none') throw new Error('No se encontró la tabla de categorías.');
+
+    const code = normalizeCategoryCode(input.code);
+    const label = input.label.trim();
+    const defaultDescription = input.defaultDescription?.trim() || null;
+
+    if (mode === 'training_categories_public') {
+      const { error } = await supabase
+        .from('training_categories')
+        .update({
+          code,
+          label,
+          default_description: defaultDescription,
+          for_schedules: input.appliesToSchedules,
+          for_students: input.appliesToAthletes,
+          is_active: input.isActive,
+        })
+        .eq('code', category.code);
+      if (error) throw new Error(error.message || 'No se pudo actualizar la categoría.');
+      return;
+    }
+    if (mode === 'training_categories_training') {
+      const { error } = await supabase
+        .schema('training')
+        .from('training_categories')
+        .update({
+          code,
+          label,
+          default_description: defaultDescription,
+          for_schedules: input.appliesToSchedules,
+          for_students: input.appliesToAthletes,
+          is_active: input.isActive,
+        })
+        .eq('code', category.code);
+      if (error) throw new Error(error.message || 'No se pudo actualizar la categoría.');
+      return;
+    }
+
+    throw new Error('Edición de categorías solo disponible en training_categories.');
+  },
+
+  async deleteScheduleCategory(category: ScheduleCategory) {
+    const mode = await resolveCategoriesTableMode();
+    if (mode === 'none') throw new Error('No se encontró la tabla de categorías.');
+
+    const linked = await supabase.from('schedules').select('id').eq('categoria', category.code).limit(1);
+    if (!linked.error && (linked.data || []).length > 0) {
+      throw new Error('No se puede eliminar: la categoría está en uso por uno o más horarios. Desactívala primero.');
+    }
+
+    if (mode === 'training_categories_public') {
+      const { error } = await supabase.from('training_categories').delete().eq('code', category.code);
+      if (error) throw new Error(error.message || 'No se pudo eliminar la categoría.');
+      return;
+    }
+    if (mode === 'training_categories_training') {
+      const { error } = await supabase.schema('training').from('training_categories').delete().eq('code', category.code);
+      if (error) throw new Error(error.message || 'No se pudo eliminar la categoría.');
+      return;
+    }
+
+    throw new Error('Eliminación de categorías solo disponible en training_categories.');
   },
 };
